@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -112,7 +113,8 @@ def _services(http_request: Request) -> Services:
 
 @router.get("/health")
 def health(http_request: Request):
-    return {"status": "ok", "parser": _services(http_request).parser_name}
+    version = os.getenv("APP_VERSION") or os.getenv("RENDER_GIT_COMMIT") or "dev"
+    return {"status": "ok", "version": version, "parser": _services(http_request).parser_name}
 
 
 @router.get("/cost-centers")

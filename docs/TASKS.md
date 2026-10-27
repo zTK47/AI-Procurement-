@@ -1,6 +1,6 @@
 # TASKS.md
 
-PHASE: 4
+PHASE: 5
 STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
@@ -22,13 +22,14 @@ Requests record the requester name; both admin tables share one layout
 
 ## Backlog
 
-- VALIDATE (in progress): Dockerfile, CI with unit + integration tests, release
-  workflow (build image → E2E against container → push to GHCR).
-  Evidence 2026-10-27: CI run 40532384562 green on feature/uc-001-catalog-order
-  (structure, 36 unit + 15 integration tests on Python 3.12, Docker build,
-  3 E2E tests against the container). Open: first tagged release (v0.1.0)
-  after merge to main, which verifies the GHCR push.
-- DEPLOY: Render + Neon PostgreSQL (needs a PostgreSQL driver).
+- VALIDATE (done 2026-10-27): CI green (structure, 51 tests on Python 3.12,
+  Docker build, 3 E2E tests against the container); release v0.1.0 green
+  (run 40535225506): image ghcr.io/ztk47/procai:v0.1.0 published and
+  publicly pullable, GitHub release created.
+- DEPLOY (in progress, ADR-002): Render live at
+  https://ai-procurement-dfjq.onrender.com (read-only smoke tests green);
+  PostgreSQL driver + release-gated cd.yml added. Open: Neon DATABASE_URL and
+  LiteLLM env vars in Render, deploy hook secret, release v0.1.1 via CD.
 - UC-002 Free-text order (offer upload → order request PDF → supplier).
 - OCI punch-out catalogs; multi-line orders; authentication/roles.
 - Done: LiteLLM gateway integration (client, env variables, unit tests).

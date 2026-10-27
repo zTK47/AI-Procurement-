@@ -119,13 +119,24 @@ class OrderLineRow(Base):
     currency: Mapped[str] = mapped_column(String(3), default="CHF")
 
 
+def normalize_database_url(url: str) -> str:
+    """Hosted PostgreSQL URLs (Neon, Render) use postgres:// or postgresql://; use the psycopg 3 driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 class Database:
     def __init__(self, url: str):
+        url = normalize_database_url(url)
         options: dict[str, Any] = {}
         if url.startswith("sqlite"):
             options["connect_args"] = {"check_same_thread": False}
             if url in ("sqlite://", "sqlite:///:memory:"):
                 options["poolclass"] = StaticPool
+        else:
+            options["pool_pre_ping"] = True
         self.engine = create_engine(url, **options)
         self.sessions = sessionmaker(self.engine, expire_on_commit=False)
 

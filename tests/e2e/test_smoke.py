@@ -28,11 +28,19 @@ def submit(api, prompt):
     return response.json()
 
 
+@pytest.mark.readonly
 def test_service_is_healthy_and_serves_the_ui(api):
     assert api.get("/api/health").json()["status"] == "ok"
     page = api.get("/")
     assert page.status_code == 200
     assert "<title>ProcAI" in page.text
+
+
+@pytest.mark.readonly
+def test_master_data_is_available(api):
+    assert {c["id"] for c in api.get("/api/cost-centers").json()} >= {"CC-100", "CC-200", "CC-300"}
+    assert len(api.get("/api/catalog").json()) >= 10
+    assert len(api.get("/api/suppliers").json()) >= 3
 
 
 def test_auto_approved_order_is_sent_to_supplier(api):

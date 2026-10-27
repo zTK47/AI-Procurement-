@@ -50,7 +50,8 @@ ER diagram and relationships: [DATA-MODEL.md](DATA-MODEL.md). Amounts are `NUMER
 | `ApproveRequest` / `RejectRequest` | Approver decision on a pending request |
 | `SendOrder` | Create purchase order, consume budget, mark `ORDER_SENT` |
 
-Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md).
+Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md),
+[ADR-002](adr/ADR-002-deployment-render-neon.md) (deployment).
 
 ## Structure
 
@@ -76,6 +77,8 @@ Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md).
 | Run locally | `.venv/bin/uvicorn app.main:create_app --factory --reload --app-dir src` → http://localhost:8000 |
 | CI | `.github/workflows/ci.yml`: structure check + unit/integration tests on every push and PR |
 | Build/release | Push a tag `vX.Y.Z` → `release.yml` runs tests, builds the image, runs E2E against the container, pushes `ghcr.io/<owner>/procai`, creates the GitHub release |
+| Deploy | Automatic after a green release: `cd.yml` → Render deploy hook → wait for the released version on `/api/health` → read-only smoke tests. Manual: Actions → CD → Run workflow |
+| Production | https://ai-procurement-dfjq.onrender.com (Render, Frankfurt) + Neon PostgreSQL |
 
 ## Dependencies
 
@@ -84,3 +87,13 @@ Declared in `requirements.txt` / `environments/python/requirements.txt`
 Environment variables: `LITELLM_API_BASE`, `LITELLM_API_KEY`, optional
 `LITELLM_MODEL`, optional `DATABASE_URL` (default `sqlite:///./procurement.db`),
 optional `PARSER` (`llm` default, `rules` to skip the LLM). Never commit secrets.
+`DATABASE_URL` accepts Neon/Render PostgreSQL URLs (`postgresql://…?sslmode=require`).
+
+Deployment configuration (not in the repo):
+
+| Where | Name | Value |
+|---|---|---|
+| Render env | `DATABASE_URL` | Neon connection string |
+| Render env | `LITELLM_API_BASE`, `LITELLM_API_KEY`, `LITELLM_MODEL` | gateway settings |
+| GitHub secret | `RENDER_DEPLOY_HOOK_URL` | Render → Settings → Deploy Hook |
+| GitHub variables | `CD_ENABLED=true`, `APP_URL` | enable CD, live URL |
