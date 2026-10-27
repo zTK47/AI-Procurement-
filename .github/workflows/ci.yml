@@ -54,3 +54,39 @@ jobs:
 
       - name: Integration tests
         run: python -m pytest tests/integration -v
+
+  container:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg PYTHON_VERSION="$(cat .python-version)" -t procai:ci .
+
+      - name: Start container
+        run: |
+          docker run -d --name procai -p 8000:8000 -e PARSER=rules procai:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/api/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs procai
+          exit 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: E2E tests against the container
+        env:
+          E2E_BASE_URL: http://localhost:8000
+        run: |
+          pip install pytest==9.1.1 httpx==0.28.1
+          python -m pytest tests/e2e -v
+
+      - name: Container logs
+        if: always()
+        run: docker logs procai || true
