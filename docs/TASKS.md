@@ -23,8 +23,11 @@ Requests record the requester name; both admin tables share one layout
 ## Backlog
 
 - VALIDATE (in progress): Dockerfile, CI with unit + integration tests, release
-  workflow (build image → E2E against container → push to GHCR). Done when CI
-  and a tagged release run green on GitHub.
+  workflow (build image → E2E against container → push to GHCR).
+  Evidence 2026-10-27: CI run 40532384562 green on feature/uc-001-catalog-order
+  (structure, 36 unit + 15 integration tests on Python 3.12, Docker build,
+  3 E2E tests against the container). Open: first tagged release (v0.1.0)
+  after merge to main, which verifies the GHCR push.
 - DEPLOY: Render + Neon PostgreSQL (needs a PostgreSQL driver).
 - UC-002 Free-text order (offer upload → order request PDF → supplier).
 - OCI punch-out catalogs; multi-line orders; authentication/roles.
