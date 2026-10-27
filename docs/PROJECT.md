@@ -51,7 +51,8 @@ ER diagram and relationships: [DATA-MODEL.md](DATA-MODEL.md). Amounts are `NUMER
 | `SendOrder` | Create purchase order, consume budget, mark `ORDER_SENT` |
 
 Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md),
-[ADR-002](adr/ADR-002-deployment-render-neon.md) (deployment).
+[ADR-002](adr/ADR-002-deployment-render-neon.md) (deployment). AI tooling, model
+selection and AI cost: [AI-TOOLING.md](AI-TOOLING.md).
 
 ## Structure
 
@@ -69,6 +70,7 @@ Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md),
 | Activity | Command |
 |---|---|
 | Install | `bash scripts/setup-python.sh` |
+| Model benchmark | `.venv/bin/python scripts/benchmark_models.py` → `docs/MODEL-EVALUATION.md` |
 | Create demo DB | `.venv/bin/python scripts/init_db.py --reset` → `procurement.db` |
 | Unit tests | `.venv/bin/python -m pytest tests/unit` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration` |
