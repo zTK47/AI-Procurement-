@@ -1,133 +1,144 @@
-# AI-SDLC Project Template
+# ProcAI – AI procurement agent
 
-[![AI-SDLC](https://img.shields.io/badge/AI--SDLC-v1.0.0-blue)](https://ai-sdlc.aisl.science)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22833065.svg)](https://doi.org/10.5281/zenodo.22833065)
-[![arXiv](https://img.shields.io/badge/arXiv-2609.24348-b31b1b.svg)](https://doi.org/10.48550/arXiv.2609.24348)
+[![CI](https://github.com/zTK47/AI-Procurement-/actions/workflows/ci.yml/badge.svg)](https://github.com/zTK47/AI-Procurement-/actions/workflows/ci.yml)
+[![Release](https://github.com/zTK47/AI-Procurement-/actions/workflows/release.yml/badge.svg)](https://github.com/zTK47/AI-Procurement-/releases)
+[![CD](https://github.com/zTK47/AI-Procurement-/actions/workflows/cd.yml/badge.svg)](https://github.com/zTK47/AI-Procurement-/actions/workflows/cd.yml)
 
-Starter repository for student and teaching projects that use the AI-Assisted
-Software Development Life Cycle (AI-SDLC).
+**Just say what you need – ProcAI orders it.** Employees describe a purchase in
+plain language (*"I need 5 new Lenovo Laptop"*, *"Bitte bestelle 3
+Bürostühle"*). An LLM extracts the request, deterministic business rules pick
+the best-priced catalog item, check budget and stock, route it for approval
+and generate the purchase order for the supplier – no forms, no catalog search.
 
-The method is documented canonically in [AISL Docs](https://docs.aisl.science/learning-and-resources/ai-sdlc). This repository contains only the executable, repository-local
-workflow artefacts. It does not contain a complete copy of the method or
-application-specific code.
+- **Live:** https://ai-procurement-dfjq.onrender.com (free tier: the first request after idle takes about a minute)
+- **Latest release:** [Releases](https://github.com/zTK47/AI-Procurement-/releases) · image `ghcr.io/ztk47/procai`
+- **Capstone** of *AI-assisted Software Development*, BSc Business Information Technology, FHNW, autumn 2026
 
-## Create a project
+## What it does
 
-1. Select **Use this template** on GitHub and create a new repository.
-2. Open the new repository in GitHub Codespaces and run the agent setup below.
-3. Complete `docs/PROJECT.md` with the project context, architecture and commands.
-4. Start the lifecycle with `AGENTS.md` and record progress in `docs/TASKS.md`.
-5. Use `docs/specs/UC-TEMPLATE.md` for the first use-case specification.
+Catalog order (use case [UC-001](docs/specs/UC-001-CATALOG-ORDER.md)):
 
-GitHub Copilot instructions are provided in `.github/copilot-instructions.md`.
-The included GitHub Actions workflows check the required AI-SDLC structure and
-provide a technology-neutral source release baseline. Add project-specific
-build, test and artifact-publishing steps during VALIDATE.
-`.github/workflows/cd.yml` is included as an inactive template and must be
-configured during DEPLOY, after the deployment platform, required secrets and
-post-deploy checks have been decided.
+1. The **requester** writes a prompt and picks a cost center.
+2. The **LLM** (Claude Haiku 5.5 via the LiteLLM gateway) returns quantity, product and category as JSON.
+3. **Rules** resolve the catalog item – if several match, the cheapest wins – and check budget and stock.
+4. **Approval:** ≤ CHF 1,000 and in stock → auto-approved; otherwise MANAGER (≤ CHF 25,000) or DIRECTOR.
+5. **Procurement** approves or rejects (with reason) and sends the purchase order; the budget is consumed.
 
-## LiteLLM integration
+Workflow: `CREATED → PARSED → RESOLVED → VALIDATED → PENDING_APPROVAL → APPROVED → ORDER_SENT` (or `REJECTED`), every step stored as audit trail.
 
-The repository connects to the shared OpenAI-compatible LiteLLM gateway instead
-of storing provider credentials or running a model locally. Copy
-`.env.example` to `.env`, replace the gateway key, and install the Python
-dependencies:
+| Requester view | Procurement view |
+|---|---|
+| ![Requester view](docs/images/requester-view.png) | ![Procurement view](docs/images/procurement-view.png) |
 
-```bash
-cp .env.example .env
-bash scripts/setup-python.sh
+## Architecture
+
+Clean Architecture – dependencies point inward
+(`domain ← application ← interfaces ← infrastructure`). The LLM only parses;
+everything that decides money is deterministic and unit-tested
+([ADR-001](docs/adr/ADR-001-catalog-order-mvp-architecture.md)).
+
+```mermaid
+flowchart LR
+    user([Requester / Procurement<br/>browser]) --> interfaces
+    subgraph app [ProcAI – src/app]
+        interfaces["interfaces<br/>FastAPI REST API + web UI"] --> application
+        application["application<br/>SubmitRequest · ApproveRequest<br/>RejectRequest · SendOrder · ports"] --> domain
+        domain["domain<br/>entities · value objects<br/>sourcing & approval rules · workflow"]
+        infrastructure["infrastructure<br/>SQLAlchemy repositories<br/>LiteLLM + rule-based parser · wiring"] -. implements ports .-> application
+    end
+    infrastructure --> db[("SQLite (local)<br/>Neon PostgreSQL (prod)")]
+    infrastructure --> llm["LiteLLM gateway<br/>Claude Haiku 5.5"]
 ```
 
-The configured default model is `azure_ai/claude-haiku-5-5`. Other models can
-be selected by changing `LITELLM_MODEL` in `.env`, provided the gateway account
-has access to that model. The client lives in
-`src/app/infrastructure/llm_client.py` and sends requests as
-`openai/<model>` so the gateway does the provider routing.
+Data model: 7 related tables (suppliers, catalog items, cost centers,
+procurement requests, status history, purchase orders, order lines) –
+[DATA-MODEL.md](docs/DATA-MODEL.md) with ER diagram.
 
-## ProcAI – catalog order MVP (UC-001)
+| Layer | Technology |
+|---|---|
+| Web UI | HTML/CSS/JS served by FastAPI (light blue / white) |
+| API | FastAPI, pydantic |
+| Persistence | SQLAlchemy 2 – SQLite locally, Neon PostgreSQL in production |
+| AI | LiteLLM gateway (OpenAI-compatible), Claude Haiku 5.5, rule-based fallback |
+| Delivery | Docker, GitHub Actions, GitHub Packages (GHCR), Render |
 
-ProcAI has two views (switch in the header, no login in the MVP):
+## Run locally
 
-- **Requester** (`/#/request`): write a prompt, see how it was understood,
-  sourced and checked, and track your requests.
-- **Procurement** (`/#/admin`): KPIs, action queue (approve, reject with
-  reason, send purchase order), all requests with date and status filter
-  (Requested, Approved, Ordered, Rejected) and purchase orders. Refreshes
-  every 5 seconds.
-
-A requester types what they need ("I need 5 new Lenovo Laptop"). The LLM
-extracts quantity, product and category; deterministic rules then pick the
-cheapest matching catalog item, check budget and stock, route the request for
-approval and generate the purchase order for the supplier. If the gateway is
-unreachable, a rule-based parser takes over. See
-[UC-001](docs/specs/UC-001-CATALOG-ORDER.md) and
-[ADR-001](docs/adr/ADR-001-catalog-order-mvp-architecture.md).
+Requires Python 3.12+.
 
 ```bash
+bash scripts/setup-python.sh                  # .venv + dependencies
+cp .env.example .env                          # add your LiteLLM key
+.venv/bin/python scripts/init_db.py --reset   # procurement.db with demo data
 .venv/bin/uvicorn app.main:create_app --factory --reload --app-dir src
-# open http://localhost:8000  (API docs: http://localhost:8000/docs)
-.venv/bin/python -m pytest          # unit + integration tests
 ```
 
-Run with Docker (no local Python needed):
+Open http://localhost:8000 (API docs: http://localhost:8000/docs). Without a
+key, set `PARSER=rules` to use the rule-based parser.
+
+With Docker:
 
 ```bash
-docker build -t procai .
-docker run --rm -p 8000:8000 --env-file .env procai   # or -e PARSER=rules without a key
+docker run --rm -p 8000:8000 --env-file .env ghcr.io/ztk47/procai:latest
 ```
 
-Released images: `ghcr.io/<owner>/procai:<version>` (see Releases).
+## Tests
 
-Workflow: `CREATED → PARSED → RESOLVED → VALIDATED → PENDING_APPROVAL →
-APPROVED → ORDER_SENT` (or `REJECTED`). Orders ≤ 1,000 CHF in stock are
-auto-approved; above that a MANAGER (≤ 25,000 CHF) or DIRECTOR approves.
+Test-driven: tests were committed before the implementation (see `test:` before `feat:` in the history).
 
-## MCP servers
+| Level | What | Command |
+|---|---|---|
+| Unit (37) | value objects, rules, workflow, parsers, use cases | `.venv/bin/python -m pytest tests/unit` |
+| Integration (20) | REST API + SQLite, repository round trips | `.venv/bin/python -m pytest tests/integration` |
+| E2E (4) | full flow against a running instance / container | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` |
 
-Shared MCP configuration is versioned for VS Code (`.vscode/mcp.json`) and
-Claude Code (`.mcp.json`). Neither file contains credentials.
+## CI/CD and deployment
 
-| Server | URL | Why | Permissions |
-|---|---|---|---|
-| `context7` | `https://mcp.context7.com/mcp` | Current, version-specific docs for FastAPI, LiteLLM, SQLAlchemy and pytest instead of stale model knowledge | Read-only, public docs, no key |
-| `ai-procurement-repo` (GitMCP) | `https://gitmcp.io/zTK47/AI-Procurement-` | Lets the agent search this repository's code and docs as context | Read-only, public repo, no key |
+```mermaid
+flowchart LR
+    pr[Pull request] --> ci["CI<br/>structure · unit + integration<br/>Docker build + E2E"]
+    ci --> merge[Merge to main] --> tag[Tag vX.Y.Z]
+    tag --> release["Release<br/>tests · image · E2E<br/>push to GHCR · GitHub release"]
+    release --> cd["CD<br/>Render deploy hook · version check<br/>read-only smoke tests"]
+    cd --> prod[("Render + Neon")]
+```
 
-VS Code: open the repository and start the servers from `.vscode/mcp.json`
-(or `MCP: List Servers`). Claude Code: the servers are offered on first start
-in the repository; check them with `/mcp`.
+- [`ci.yml`](.github/workflows/ci.yml) – every push and pull request.
+- [`release.yml`](.github/workflows/release.yml) – on tags `v*`; publishes `ghcr.io/ztk47/procai`.
+- [`cd.yml`](.github/workflows/cd.yml) – only after a green release; production never gets untested code ([ADR-002](docs/adr/ADR-002-deployment-render-neon.md)).
+- Secrets (`LITELLM_API_KEY`, `DATABASE_URL`, deploy hook) live only in Render and GitHub secrets – never in the repository.
 
-The LiteLLM gateway also exposes `/mcp`, but no tools are published for our
-keys, so it is not configured. Add servers that need tokens (for example the
-GitHub MCP server) only in user scope and never commit tokens.
+## AI-assisted development
 
-## Agent setup
+Built with **Claude Code** (Claude Opus 5.5), steered by the AI-SDLC router
+[`AGENTS.md`](AGENTS.md) and phase skills in [`skills/`](skills/): specify →
+design → develop (TDD) → validate → deploy, with every merge, release and
+deployment approved by the team. MCP servers (Context7, GitMCP) give the agent
+current library docs and repository context.
 
-Codespaces creates a Python development container with Python, Pylance,
-debugging and GitHub Copilot extensions. It also prepares `.agents/skills` and
-the Python environment automatically. The default terminal locale is English;
-the VS Code UI uses its own user display-language setting.
+Model choice and AI cost (≈ USD 0.00005 per request) are documented in
+[AI-TOOLING.md](docs/AI-TOOLING.md) and [MODEL-EVALUATION.md](docs/MODEL-EVALUATION.md).
 
-Run `bash scripts/setup-skills.sh` from the repository root when another agent
-is used. Run `bash scripts/setup-python.sh` again when the Python environment
-needs to be recreated or refreshed.
-Choose `copilot`, `codex`, `claude`, `cline`, `opencode`, `cursor`, `kiro`,
-`junie`, `devin` or `all`. The script links to the canonical `skills/` directory and
-falls back to copying if links are unavailable. Existing destinations are kept;
-copies must be refreshed manually after skill changes. Verify discovery in your
-agent; setup does not install or configure the agent itself.
+## Documentation
 
-For non-interactive setup, pass the same selection, for example `bash scripts/setup-skills.sh copilot`. The `claude` and `all` selections also create a missing `CLAUDE.md` containing `@AGENTS.md`; an existing file is preserved. Shared instructions and skills are not modified.
+| Document | Content |
+|---|---|
+| [docs/PROJECT.md](docs/PROJECT.md) | purpose, architecture, commands, configuration |
+| [docs/specs/UC-001-CATALOG-ORDER.md](docs/specs/UC-001-CATALOG-ORDER.md) | use case, errors, acceptance criteria |
+| [docs/adr/](docs/adr/) | ADR-001 architecture, ADR-002 deployment |
+| [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | ER diagram, relationships, [schema.sql](docs/schema.sql) |
+| [docs/AI-TOOLING.md](docs/AI-TOOLING.md) | coding agent, MCP, model selection, AI cost, lessons learned |
+| [docs/TASKS.md](docs/TASKS.md) | lifecycle state and evidence |
 
-## Repository artefacts
+## Repository structure
 
-- `AGENTS.md` — lifecycle router and guardrails
-- `docs/PROJECT.md` — project context and commands
-- `docs/TASKS.md` — current lifecycle state
-- `docs/specs/` — executable use-case specifications
-- `skills/ai-sdlc-*` — phase-specific execution guidance
-- `.devcontainer/` — Codespaces and VS Code baseline
-- `environments/python/` — Python environment profile, including the source
-  VS Code debug configuration
-- `scripts/setup-python.sh` — Python environment and dependency setup
-- `.github/` — Copilot instructions, CI, release and CD workflow templates
+```
+src/app/            domain · application · interfaces (API + UI) · infrastructure · main.py
+tests/              unit · integration · e2e
+docs/               project docs, use cases, ADRs, data model, AI tooling
+scripts/            setup, demo database, model benchmark
+.github/workflows/  CI, release, CD
+AGENTS.md, skills/  AI-SDLC router and phase skills for the coding agent
+```
+
+Built on the [AISL AI-SDLC template](https://docs.aisl.science/learning-and-resources/ai-sdlc).
