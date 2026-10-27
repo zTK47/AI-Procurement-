@@ -159,6 +159,12 @@ def test_master_data_endpoints(client):
     assert {"id": "SUP-001", "name": "Alpine IT Distribution AG", "email": "orders@alpine-it.example"} in client.get("/api/suppliers").json()
 
 
+def test_health_reports_the_deployed_version(client, monkeypatch):
+    monkeypatch.setenv("APP_VERSION", "abc1234")
+
+    assert client.get("/api/health").json()["version"] == "abc1234"
+
+
 def test_ui_is_served(client):
     response = client.get("/")
 
