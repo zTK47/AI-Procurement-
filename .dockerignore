@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+.vscode
+.env
+*.db
+__pycache__/
+.pytest_cache/
+docs
+tests
+skills
+environments

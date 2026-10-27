@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProcAI · AI procurement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Two-colour palette: light blue and white. All other tones are mixed from them. */
+    --blue: #4DABF7;
+    --white: #FFFFFF;
+
+    --ink: color-mix(in srgb, var(--blue) 22%, black);
+    --ink-soft: color-mix(in srgb, var(--ink) 65%, var(--white));
+    --ink-faint: color-mix(in srgb, var(--ink) 42%, var(--white));
+    --blue-strong: color-mix(in srgb, var(--blue) 72%, black);
+    --blue-30: color-mix(in srgb, var(--blue) 30%, var(--white));
+    --blue-15: color-mix(in srgb, var(--blue) 15%, var(--white));
+    --blue-08: color-mix(in srgb, var(--blue) 8%, var(--white));
+    --blue-04: color-mix(in srgb, var(--blue) 4%, var(--white));
+    --line: color-mix(in srgb, var(--blue) 18%, var(--white));
+    --radius: 18px;
+    --shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent), 0 12px 32px color-mix(in srgb, var(--blue) 12%, transparent);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--ink); background: var(--white); font-size: 15px; line-height: 1.5; }
+  button, select, textarea, input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .muted { color: var(--ink-soft); }
+  .small { font-size: 13px; }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--white) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); }
+  .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: var(--blue); display: grid; place-items: center; color: var(--white); font-size: 15px; }
+  .brand b { color: var(--blue-strong); }
+  .switch { display: flex; background: var(--blue-08); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+  .switch a { padding: 7px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; text-decoration: none; color: var(--ink-soft); }
+  .switch a.on { background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-soft); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue-15); color: var(--blue-strong); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--blue-08); color: var(--blue-strong); border: 1px solid var(--line); white-space: nowrap; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; padding: 64px 0 40px; }
+  .hero::before { content: ""; position: absolute; inset: -40% -10% auto auto; width: 720px; height: 720px; border-radius: 50%;
+    background: radial-gradient(circle, var(--blue-30) 0%, transparent 65%); z-index: -1; }
+  .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--blue-strong); background: var(--blue-08); border: 1px solid var(--line); padding: 5px 12px; border-radius: 999px; }
+  .hero h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1.05; letter-spacing: -0.035em; margin: 18px 0 14px; max-width: 16ch; }
+  .hero h1 span { color: var(--blue); }
+  .hero p { margin: 0; max-width: 58ch; color: var(--ink-soft); font-size: 17px; }
+
+  /* Composer */
+  .composer { background: var(--white); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 22px; margin-top: 32px; }
+  .composer textarea { width: 100%; border: 0; resize: vertical; min-height: 80px; font-size: 19px; outline: none; background: transparent; }
+  .composer textarea::placeholder { color: var(--ink-faint); }
+  .composer-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: var(--blue-04); border-radius: 999px; padding: 6px 13px; font-size: 13px; cursor: pointer; }
+  .chip:hover, .chip.on { border-color: var(--blue); background: var(--blue-15); }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, input[type=text] { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--white); }
+  select:focus, input:focus, textarea:focus-visible { outline: 2px solid var(--blue-30); outline-offset: 1px; }
+
+  .btn { border: 0; border-radius: 12px; padding: 10px 18px; font-weight: 600; cursor: pointer; transition: transform .05s ease, background .15s ease; white-space: nowrap; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--blue-strong); color: var(--white); }
+  .btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--blue) 82%, black); }
+  .btn-soft { background: var(--blue-15); color: var(--blue-strong); }
+  .btn-soft:hover:not(:disabled) { background: var(--blue-30); }
+  .btn-line { background: var(--white); border: 1px solid var(--line); }
+  .btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+
+  /* Panels */
+  .panel { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .panel.raised { box-shadow: var(--shadow); }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin: 0 0 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .stack > * + * { margin-top: 20px; }
+  .empty { color: var(--ink-faint); text-align: center; padding: 36px 12px; }
+  section.block { padding: 8px 0 56px; }
+
+  /* Status */
+  .pill { font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px; white-space: nowrap; display: inline-block; }
+  .pill.wait { background: var(--blue-15); color: var(--blue-strong); }
+  .pill.ok { background: var(--blue-strong); color: var(--white); }
+  .pill.new { background: var(--white); color: var(--blue-strong); border: 1px solid var(--blue); }
+  .pill.red { background: color-mix(in srgb, #E5484D 12%, var(--white)); color: #C62A2F; border: 1px solid #E5484D; }
+  .pill.stop { background: var(--white); color: var(--ink-soft); border: 1px dashed var(--ink-faint); }
+
+
+  .pass { color: var(--blue-strong); font-weight: 600; }
+  .fail { color: var(--ink); font-weight: 600; text-decoration: underline wavy var(--ink-faint); }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; color: var(--ink-soft); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); padding: 8px 8px 8px 0; }
+  td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td.r, th.r { text-align: right; }
+  .table-scroll { overflow-x: auto; }
+  .req-table { table-layout: fixed; min-width: 1040px; }
+  .req-table td { overflow-wrap: anywhere; }
+  .req-table th:nth-child(1) { width: 13%; } .req-table th:nth-child(2) { width: 18%; }
+  .req-table th:nth-child(3) { width: 10%; } .req-table th:nth-child(4) { width: 11%; }
+  .req-table th:nth-child(5) { width: 15%; } .req-table th:nth-child(6) { width: 15%; }
+  .req-table th:nth-child(7) { width: 9%; }  .req-table th:nth-child(8) { width: 9%; }
+
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { padding: 12px 10px; border-radius: 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .list li.sel { background: var(--blue-04); }
+  .list li + li { border-top: 1px solid var(--line); }
+  .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Admin */
+  .admin-head { padding: 40px 0 24px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .admin-head h1 { margin: 0; font-size: 34px; letter-spacing: -0.03em; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kpi { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; background: linear-gradient(180deg, var(--blue-04), var(--white)); }
+  .kpi .v { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; }
+  .kpi .l { font-size: 13px; color: var(--ink-soft); }
+  .queue-item { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; }
+  .queue-item + .queue-item { margin-top: 10px; }
+  .queue-item .meta { font-size: 13px; color: var(--ink-soft); display: flex; gap: 12px; flex-wrap: wrap; }
+  .reject-form { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
+  .reject-form input { flex: 1; min-width: 180px; }
+
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--blue-strong); color: var(--white); padding: 11px 18px; border-radius: 12px; font-size: 14px; box-shadow: var(--shadow); display: none; z-index: 20; }
+  footer { border-top: 1px solid var(--line); padding: 24px 0; font-size: 13px; color: var(--ink-faint); }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px; }
+    header .wrap { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+    .who .label { display: none; }
+    .switch a { padding: 6px 12px; }
+    .controls, .controls select, .controls input { width: 100%; }
+    .controls .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="#/request"><span class="mark">◆</span><span>Proc<b>AI</b></span></a>
+    <nav class="switch" aria-label="View">
+      <a href="#/request" data-view="user">Requester</a>
+      <a href="#/admin" data-view="admin">Procurement</a>
+    </nav>
+    <div class="who"><span class="badge" id="parser">connecting…</span><span class="label" id="role-label">Employee</span><span class="avatar" id="role-avatar">EM</span></div>
+  </div>
+</header>
+
+<!-- REQUESTER VIEW -->
+<div id="view-user">
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">◆ AI procurement agent · catalog orders</span>
+      <h1>Just say what you need. <span>ProcAI orders it.</span></h1>
+      <p>Type what you need. ProcAI finds the best price and handles the rest.</p>
+      <form class="composer" id="composer">
+        <label for="prompt" class="small muted">Your request</label>
+        <textarea id="prompt" maxlength="1000" placeholder="e.g. I need 5 new Lenovo Laptop" required></textarea>
+        <div class="composer-row">
+          <div class="chips" id="examples"></div>
+          <div class="controls">
+            <input type="text" id="requesterName" maxlength="100" placeholder="Your name" aria-label="Your name" required>
+            <select id="costCenter" aria-label="Cost center"></select>
+            <button class="btn btn-primary" id="submit" type="submit">Submit request</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+  <section class="block">
+    <div class="wrap">
+      <div class="panel raised"><h2>My requests <span class="muted small" id="user-count"></span></h2><ul class="list" id="user-list"></ul></div>
+    </div>
+  </section>
+</div>
+
+<!-- PROCUREMENT ADMIN VIEW -->
+<div id="view-admin" hidden>
+  <div class="wrap">
+    <div class="admin-head">
+      <div><span class="eyebrow">◆ Procurement cockpit</span><h1>Approvals &amp; orders</h1></div>
+      <span class="muted small" id="admin-updated"></span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="stack">
+      <div class="panel raised"><h2>Action queue <span class="muted small" id="queue-count"></span></h2><div id="queue"></div></div>
+      <div class="panel">
+        <h2>All requests <span class="chips" id="filters"></span></h2>
+        <div class="table-scroll"><table class="req-table"><thead><tr><th>Date</th><th>Reference</th><th>Requester</th><th>Department</th><th>Supplier</th><th>Item</th><th class="r">Total</th><th>Status</th></tr></thead><tbody id="all-requests"></tbody></table></div>
+      </div>
+      <div class="panel"><h2>Purchase orders</h2>
+        <div class="table-scroll"><table class="req-table"><thead><tr><th>Date</th><th>Reference</th><th>Requester</th><th>Department</th><th>Supplier</th><th>Item</th><th class="r">Total</th><th>Status</th></tr></thead><tbody id="orders"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <section class="block"></section>
+</div>
+
+<footer><div class="wrap">ProcAI MVP · catalog orders (UC-001) · prompts parsed by an LLM via the LiteLLM gateway, all business rules deterministic.</div></footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const LABELS = { CREATED: "Created", PARSED: "Understood", RESOLVED: "Sourced", VALIDATED: "Checked", PENDING_APPROVAL: "Approval", APPROVED: "Approved", ORDER_SENT: "Ordered", REJECTED: "Rejected" };
+const REASONS = { PARSE_FAILED: "The request could not be understood — add a quantity and a product.", ITEM_NOT_FOUND: "No catalog item matches this request.", BUDGET_EXCEEDED: "The cost center budget is not sufficient." };
+const EXAMPLES = ["I need 5 new Lenovo Laptop", "2 Logitech mice", "Please order three monitors for the team", "Bitte bestelle 3 Bürostühle"];
+const FILTERS = ["All", "Requested", "Approved", "Ordered", "Rejected"];
+const tableStatus = (r) => (r.status === "REJECTED" ? "Rejected" : r.status === "ORDER_SENT" ? "Ordered" : r.status === "APPROVED" ? "Approved" : "Requested");
+const TABLE_PILL = { Requested: "wait", Approved: "new", Ordered: "ok", Rejected: "red" };
+const when = (iso) => new Date(iso).toLocaleString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const chf = new Intl.NumberFormat("de-CH", { style: "currency", currency: "CHF" });
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const state = { requests: [], centers: [], suppliers: [], userSel: null, filter: "All", rejecting: null };
+
+async function api(path, options = {}) {
+  const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Request failed");
+  return body;
+}
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.style.display = "block";
+  clearTimeout(el.timer);
+  el.timer = setTimeout(() => (el.style.display = "none"), 3500);
+}
+
+const view = () => (location.hash.startsWith("#/admin") ? "admin" : "user");
+const byId = (id) => state.requests.find((r) => r.requestId === id);
+const centerName = (id) => (state.centers.find((c) => c.id === id) || {}).name || id;
+const supplierName = (id) => (state.suppliers.find((s) => s.id === id) || {}).name || id;
+const me = () => $("requesterName").value.trim();
+const pillClass = (s) => (s === "REJECTED" ? "stop" : s === "ORDER_SENT" ? "ok" : s === "APPROVED" ? "new" : "wait");
+const pill = (r) => `<span class="pill ${pillClass(r.status)}">${esc(LABELS[r.status] || r.status)}</span>`;
+const check = (v) => (!v ? "—" : `<span class="${v === "PASSED" ? "pass" : "fail"}">${v === "PASSED" ? "Passed" : "Failed"}</span>`);
+
+/* ---------- Requester view ---------- */
+function userMessage(r) {
+  const v = r.validation;
+  if (r.status === "REJECTED") return REASONS[r.rejectionReason] || "Rejected by procurement: " + r.rejectionReason;
+  if (r.status === "PENDING_APPROVAL") return `Waiting for ${v.approvalLevel.toLowerCase()} approval${v.stockCheck === "FAILED" ? " · item will be backordered" : ""}.`;
+  if (r.status === "APPROVED") return v.requiresApproval ? "Approved — procurement will send the order." : "Auto-approved — procurement will send the order.";
+  if (r.status === "ORDER_SENT") return `Ordered from ${r.purchaseOrder.supplier.name} (${r.purchaseOrder.poNumber}).`;
+  return "";
+}
+
+function renderUser() {
+  const mine = me() ? state.requests.filter((q) => q.requesterName.toLowerCase() === me().toLowerCase()) : [];
+  $("user-count").textContent = mine.length ? `${mine.length}` : "";
+  $("user-list").innerHTML = mine.length ? mine.map((q) => `<li class="${q.requestId === state.userSel ? "sel" : ""}">
+      <div style="min-width:0"><div class="ellipsis"><strong>${esc(q.rawText)}</strong></div>
+      <div class="small muted">${q.resolvedData ? `${esc(q.resolvedData.name)} × ${q.parsedData.quantity} · ${chf.format(q.resolvedData.total)} · ` : ""}${esc(centerName(q.costCenterId))}</div>
+      <div class="small">${esc(userMessage(q))}</div></div>${pill(q)}</li>`).join("")
+    : `<li class="muted small">${me() ? "No requests yet — try one of the examples." : "Enter your name to see your requests."}</li>`;
+}
+
+/* ---------- Procurement admin view ---------- */
+function queueActions(r) {
+  if (r.status === "APPROVED") return `<button class="btn btn-soft btn-sm" data-act="send" data-id="${esc(r.requestId)}">Send PO</button>`;
+  if (state.rejecting === r.requestId) return "";
+  return `<button class="btn btn-primary btn-sm" data-act="approve" data-id="${esc(r.requestId)}">Approve</button><button class="btn btn-line btn-sm" data-act="reject" data-id="${esc(r.requestId)}">Reject</button>`;
+}
+
+function renderAdmin() {
+  const all = state.requests;
+  const pending = all.filter((r) => r.status === "PENDING_APPROVAL");
+  const toSend = all.filter((r) => r.status === "APPROVED");
+  const sent = all.filter((r) => r.status === "ORDER_SENT");
+  const validated = all.filter((r) => r.validation && r.validation.budgetCheck === "PASSED");
+  const auto = validated.filter((r) => !r.validation.requiresApproval).length;
+  const spend = sent.reduce((sum, r) => sum + r.purchaseOrder.total, 0);
+  $("kpis").innerHTML = [
+    ["Awaiting approval", pending.length],
+    ["Ready to send", toSend.length],
+    ["Spend ordered", chf.format(spend)],
+    ["Auto-approval rate", validated.length ? Math.round((auto / validated.length) * 100) + "%" : "—"],
+  ].map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+
+  const queue = [...pending, ...toSend];
+  $("queue-count").textContent = queue.length ? `${queue.length} open` : "";
+  $("queue").innerHTML = queue.length ? queue.map((r) => `<div class="queue-item">
+      <div style="min-width:0"><div class="ellipsis"><strong>${esc(r.resolvedData.name)}</strong> × ${r.parsedData.quantity}</div>
+      <div class="meta"><span>${when(r.createdAt)}</span><span>${esc(r.requesterName || "—")}</span><span>“${esc(r.rawText)}”</span><span>${esc(centerName(r.costCenterId))}</span><span>Stock ${check(r.validation.stockCheck)}</span>${r.validation.approvalLevel ? `<span>Level ${esc(r.validation.approvalLevel)}</span>` : ""}</div></div>
+      <div style="text-align:right"><div><strong>${chf.format(r.resolvedData.total)}</strong></div>
+      <div class="actions" style="margin-top:6px;justify-content:flex-end">${queueActions(r)}</div></div>
+      ${state.rejecting === r.requestId ? `<form class="reject-form" id="reject-form" style="grid-column:1 / -1"><input type="text" id="reject-reason" maxlength="200" placeholder="Reason, e.g. use refurbished devices" required><button class="btn btn-primary btn-sm" type="submit">Confirm reject</button><button class="btn btn-line btn-sm" type="button" data-act="cancel">Cancel</button></form>` : ""}</div>`).join("")
+    : `<div class="empty">Nothing to do — all requests are handled.</div>`;
+
+  $("filters").innerHTML = FILTERS.map((f) => `<button class="chip ${f === state.filter ? "on" : ""}" data-filter="${f}">${f}</button>`).join("");
+  const rows = all.filter((r) => state.filter === "All" || tableStatus(r) === state.filter);
+  $("all-requests").innerHTML = rows.length ? rows.map((r) => tableRow(r, false)).join("")
+    : `<tr><td colspan="8" class="muted">No requests.</td></tr>`;
+  $("orders").innerHTML = sent.length ? sent.map((r) => tableRow(r, true)).join("")
+    : `<tr><td colspan="8" class="muted">No purchase orders sent yet.</td></tr>`;
+}
+
+function tableRow(r, asOrder) {
+  const st = tableStatus(r), d = r.resolvedData, po = r.purchaseOrder;
+  const date = asOrder ? po.createdAt : r.createdAt;
+  const reference = asOrder ? `<div class="mono">${esc(po.poNumber)}</div><div class="small muted">${esc(r.requestId)}</div>`
+    : `<div class="ellipsis">${esc(r.rawText)}</div><div class="mono muted">${esc(r.requestId)}</div>`;
+  return `<tr>
+    <td class="small" style="white-space:nowrap">${when(date)}</td>
+    <td>${reference}</td>
+    <td>${esc(r.requesterName || "—")}</td>
+    <td>${esc(centerName(r.costCenterId))}</td>
+    <td>${d ? esc(supplierName(d.supplierId)) : "—"}</td>
+    <td>${d ? `${esc(d.name)} × ${r.parsedData.quantity}` : `<span class="muted">${esc(r.rejectionReason || "—")}</span>`}</td>
+    <td class="r" style="white-space:nowrap">${d ? chf.format(d.total) : "—"}</td>
+    <td><span class="pill ${TABLE_PILL[st]}">${st}</span></td></tr>`;
+}
+
+/* ---------- Data & routing ---------- */
+async function refresh() {
+  [state.requests, state.centers, state.suppliers] = await Promise.all([api("/api/requests"), api("/api/cost-centers"), api("/api/suppliers")]);
+  const select = $("costCenter"), keep = select.value;
+  select.innerHTML = state.centers.map((c) => `<option value="${esc(c.id)}">${esc(c.id)} · ${esc(c.name)} · ${chf.format(c.budgetRemaining)}</option>`).join("");
+  if (keep) select.value = keep;
+  if (!state.userSel && state.requests[0]) state.userSel = state.requests[0].requestId;
+  $("admin-updated").textContent = "Updated " + new Date().toLocaleTimeString("de-CH");
+  render();
+}
+
+function render() {
+  const v = view();
+  $("view-user").hidden = v !== "user";
+  $("view-admin").hidden = v !== "admin";
+  document.querySelectorAll(".switch a").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
+  $("role-label").textContent = v === "admin" ? "Procurement team" : "Employee";
+  $("role-avatar").textContent = v === "admin" ? "PT" : "EM";
+  if (v === "admin") renderAdmin(); else renderUser();
+}
+
+async function act(action, id, body) {
+  const updated = await api(`/api/requests/${id}/${action}`, { method: "POST", body: body ? JSON.stringify(body) : undefined });
+  state.rejecting = null;
+  toast({ approve: "Request approved.", reject: "Request rejected.", send: `Purchase order ${updated.purchaseOrder?.poNumber || ""} sent to supplier.` }[action]);
+  await refresh();
+}
+
+try { $("requesterName").value = localStorage.getItem("procai-name") || ""; } catch {}
+$("requesterName").addEventListener("input", () => { try { localStorage.setItem("procai-name", me()); } catch {} renderUser(); });
+$("examples").innerHTML = EXAMPLES.map((e) => `<button type="button" class="chip">${esc(e)}</button>`).join("");
+$("examples").addEventListener("click", (e) => { if (e.target.classList.contains("chip")) { $("prompt").value = e.target.textContent; $("prompt").focus(); } });
+$("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("composer").requestSubmit(); });
+
+$("composer").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const prompt = $("prompt").value.trim();
+  if (!prompt) return;
+  if (!me()) { toast("Please enter your name."); return $("requesterName").focus(); }
+  $("submit").disabled = true;
+  $("submit").textContent = "Working…";
+  try {
+    const created = await api("/api/requests", { method: "POST", body: JSON.stringify({ prompt, costCenterId: $("costCenter").value, requesterName: me() }) });
+    state.userSel = created.requestId;
+    $("prompt").value = "";
+    toast(userMessage(created));
+    await refresh();
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    $("submit").disabled = false;
+    $("submit").textContent = "Submit request";
+  }
+});
+
+$("view-admin").addEventListener("click", async (e) => {
+  const filter = e.target.closest("[data-filter]");
+  if (filter) { state.filter = filter.dataset.filter; return renderAdmin(); }
+  const button = e.target.closest("[data-act]");
+  if (!button) return;
+  const action = button.dataset.act;
+  if (action === "reject") { state.rejecting = button.dataset.id; renderAdmin(); return $("reject-reason").focus(); }
+  if (action === "cancel") { state.rejecting = null; return renderAdmin(); }
+  button.disabled = true;
+  try { await act(action, button.dataset.id); } catch (error) { toast(error.message); button.disabled = false; }
+});
+
+$("view-admin").addEventListener("submit", async (e) => {
+  if (e.target.id !== "reject-form") return;
+  e.preventDefault();
+  try { await act("reject", state.rejecting, { reason: $("reject-reason").value.trim() }); } catch (error) { toast(error.message); }
+});
+
+window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+api("/api/health").then((h) => ($("parser").textContent = h.parser.startsWith("llm") ? `AI · ${h.parser.slice(4).split("/").pop()}` : `Parser · ${h.parser}`)).catch(() => ($("parser").textContent = "offline"));
+refresh().catch((error) => toast(error.message));
+setInterval(() => { if (!state.rejecting && !document.hidden) refresh().catch(() => {}); }, 5000);
+</script>
+</body>
+</html>

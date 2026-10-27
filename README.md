@@ -27,6 +27,80 @@ build, test and artifact-publishing steps during VALIDATE.
 configured during DEPLOY, after the deployment platform, required secrets and
 post-deploy checks have been decided.
 
+## LiteLLM integration
+
+The repository connects to the shared OpenAI-compatible LiteLLM gateway instead
+of storing provider credentials or running a model locally. Copy
+`.env.example` to `.env`, replace the gateway key, and install the Python
+dependencies:
+
+```bash
+cp .env.example .env
+bash scripts/setup-python.sh
+```
+
+The configured default model is `azure_ai/claude-haiku-5-5`. Other models can
+be selected by changing `LITELLM_MODEL` in `.env`, provided the gateway account
+has access to that model. The client lives in
+`src/app/infrastructure/llm_client.py` and sends requests as
+`openai/<model>` so the gateway does the provider routing.
+
+## ProcAI – catalog order MVP (UC-001)
+
+ProcAI has two views (switch in the header, no login in the MVP):
+
+- **Requester** (`/#/request`): write a prompt, see how it was understood,
+  sourced and checked, and track your requests.
+- **Procurement** (`/#/admin`): KPIs, action queue (approve, reject with
+  reason, send purchase order), all requests with date and status filter
+  (Requested, Approved, Ordered, Rejected) and purchase orders. Refreshes
+  every 5 seconds.
+
+A requester types what they need ("I need 5 new Lenovo Laptop"). The LLM
+extracts quantity, product and category; deterministic rules then pick the
+cheapest matching catalog item, check budget and stock, route the request for
+approval and generate the purchase order for the supplier. If the gateway is
+unreachable, a rule-based parser takes over. See
+[UC-001](docs/specs/UC-001-CATALOG-ORDER.md) and
+[ADR-001](docs/adr/ADR-001-catalog-order-mvp-architecture.md).
+
+```bash
+.venv/bin/uvicorn app.main:create_app --factory --reload --app-dir src
+# open http://localhost:8000  (API docs: http://localhost:8000/docs)
+.venv/bin/python -m pytest          # unit + integration tests
+```
+
+Run with Docker (no local Python needed):
+
+```bash
+docker build -t procai .
+docker run --rm -p 8000:8000 --env-file .env procai   # or -e PARSER=rules without a key
+```
+
+Released images: `ghcr.io/<owner>/procai:<version>` (see Releases).
+
+Workflow: `CREATED → PARSED → RESOLVED → VALIDATED → PENDING_APPROVAL →
+APPROVED → ORDER_SENT` (or `REJECTED`). Orders ≤ 1,000 CHF in stock are
+auto-approved; above that a MANAGER (≤ 25,000 CHF) or DIRECTOR approves.
+
+## MCP servers
+
+Shared MCP configuration is versioned for VS Code (`.vscode/mcp.json`) and
+Claude Code (`.mcp.json`). Neither file contains credentials.
+
+| Server | URL | Why | Permissions |
+|---|---|---|---|
+| `context7` | `https://mcp.context7.com/mcp` | Current, version-specific docs for FastAPI, LiteLLM, SQLAlchemy and pytest instead of stale model knowledge | Read-only, public docs, no key |
+| `ai-procurement-repo` (GitMCP) | `https://gitmcp.io/zTK47/AI-Procurement-` | Lets the agent search this repository's code and docs as context | Read-only, public repo, no key |
+
+VS Code: open the repository and start the servers from `.vscode/mcp.json`
+(or `MCP: List Servers`). Claude Code: the servers are offered on first start
+in the repository; check them with `/mcp`.
+
+The LiteLLM gateway also exposes `/mcp`, but no tools are published for our
+keys, so it is not configured. Add servers that need tokens (for example the
+GitHub MCP server) only in user scope and never commit tokens.
+
 ## Agent setup
 
 Codespaces creates a Python development container with Python, Pylance,

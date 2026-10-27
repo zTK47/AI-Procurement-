@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from app.domain.entities import CatalogItem, CostCenter, ParsedRequest, ProcurementRequest, Supplier
+
+
+class RequestParser(Protocol):
+    def parse(self, text: str) -> ParsedRequest: ...
+
+
+class CatalogRepository(Protocol):
+    def list_items(self) -> list[CatalogItem]: ...
+
+    def list_suppliers(self) -> list[Supplier]: ...
+
+    def get_supplier(self, supplier_id: str) -> Supplier | None: ...
+
+
+class CostCenterRepository(Protocol):
+    def list_all(self) -> list[CostCenter]: ...
+
+    def get(self, cost_center_id: str) -> CostCenter | None: ...
+
+    def save(self, center: CostCenter) -> None: ...
+
+
+class RequestRepository(Protocol):
+    def save(self, request: ProcurementRequest) -> None: ...
+
+    def get(self, request_id: str) -> ProcurementRequest | None: ...
+
+    def list_recent(self, limit: int = 50) -> list[ProcurementRequest]: ...

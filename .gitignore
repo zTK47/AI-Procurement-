@@ -1,0 +1,27 @@
+# Python bytecode and caches
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Python environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local configuration and secrets
+.env
+.envrc
+*.log
+
+# Test and build output
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local database
+*.db
+!procurement.db
