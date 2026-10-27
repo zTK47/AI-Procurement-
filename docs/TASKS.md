@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 5
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -26,10 +26,18 @@ Requests record the requester name; both admin tables share one layout
   Docker build, 3 E2E tests against the container); release v0.1.0 green
   (run 40535225506): image ghcr.io/ztk47/procai:v0.1.0 published and
   publicly pullable, GitHub release created.
-- DEPLOY (in progress, ADR-002): Render live at
-  https://ai-procurement-dfjq.onrender.com (read-only smoke tests green);
-  PostgreSQL driver + release-gated cd.yml added. Open: Neon DATABASE_URL and
-  LiteLLM env vars in Render, deploy hook secret, release v0.1.1 via CD.
+- DEPLOY (done 2026-10-27, ADR-002): release v0.1.1 (run 40543462659)
+  triggered CD (run 40543771789): Render deploy hook, version check, read-only
+  smoke tests green. Production https://ai-procurement-dfjq.onrender.com uses
+  claude-haiku-5-5 (live parse confidence 0.95) and Neon PostgreSQL: a request
+  created before the deploy was still present afterwards. Limitation: v0.1.1
+  had the same commit as the running build, so the version check could not
+  show a change yet.
+- Documentation: README rewritten for ProcAI (screenshots, architecture,
+  run/test/deploy); docs/AI-TOOLING.md (agent, MCP, model selection, AI cost,
+  lessons learned); model benchmark script + MODEL-EVALUATION.md.
+- Open: team acceptance of ADR-001 and ADR-002; in-app AI cost tracking;
+  presentation.
 - UC-002 Free-text order (offer upload → order request PDF → supplier).
 - OCI punch-out catalogs; multi-line orders; authentication/roles.
 - Done: LiteLLM gateway integration (client, env variables, unit tests).
