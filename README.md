@@ -84,7 +84,10 @@ docker run --rm -p 8000:8000 --env-file .env ghcr.io/ztk47/procai:latest
 
 ## Tests
 
-Test-driven: tests were committed before the implementation (see `test:` before `feat:` in the history).
+Test-driven: for UC-001 the agent session log shows a failing test run before the
+implementation existed (modules missing, 13:56 UTC) and a passing run afterwards (14:01
+UTC). The commits were recorded afterwards in `test:` then `feat:` order. Evidence and timing
+note: [docs/PROMPTS.md](docs/PROMPTS.md).
 
 | Level | What | Command |
 |---|---|---|
