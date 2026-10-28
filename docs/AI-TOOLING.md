@@ -155,7 +155,7 @@ The right tool depends on the workflow, the tech stack and the risk tolerance (S
 | Prompt injection via MCP content | Only read-only, public MCP servers; tool calls that write are confirmed by a human | `.mcp.json`, `.vscode/mcp.json`; section 3 |
 | Over-privileged tokens | Workflows use least privilege; MCP servers need no keys; LiteLLM keys are "LLM API only" | `permissions:` in `ci.yml`/`cd.yml` (read), `release.yml` (write only for release and packages); section 5 |
 | Secrets in Git | `.env` ignored, placeholders only, secrets in Render/GitHub secrets | `.gitignore`, `.env.example`, [ADR-002](adr/ADR-002-deployment-render-neon.md) |
-| An LLM fallback that hides a broken primary path | Fallback logs a warning | `FallbackParser` in `src/app/infrastructure/parsers.py`. Gap: nothing alerts us if the primary LLM parser path is broken; the fallback only logs a warning. Planned: backlog item in docs/TASKS.md. |
+| An LLM fallback that hides a broken primary path | Fallback logs a warning | `FallbackParser` in `src/app/infrastructure/parsers.py`. Gap: nothing alerts us if the primary LLM parser path is broken; the fallback only logs a warning. Planned: BL-03 in docs/TASKS.md. |
 
 **Levels of autonomy (SW1).** The coding agent works agentically with a human
 in the loop: it plans, acts and observes (edits, tests, git), while merges,

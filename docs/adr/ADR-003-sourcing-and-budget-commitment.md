@@ -67,5 +67,5 @@ whiteboard of 26 Sep (stockCheck FAILED -> PENDING_APPROVAL).
   `test_submit_runs_parse_resolve_validate_and_persists`. The E2E test is not
   affected (it checks only status and approval level).
 - [UC-001](../specs/UC-001-CATALOG-ORDER.md) must be updated when this is implemented.
-- Backlog: TODO(human): add the backlog items for sourcing B and budget B to
-  [docs/TASKS.md](../TASKS.md) and link them here.
+- Backlog: BL-01 (sourcing B) and BL-02 (budget B) in
+  [docs/TASKS.md](../TASKS.md#prioritised-backlog-wsjf).
