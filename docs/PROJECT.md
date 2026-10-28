@@ -78,7 +78,7 @@ selection and AI cost: [AI-TOOLING.md](AI-TOOLING.md).
 | E2E tests | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` (needs a running instance) |
 | Docker | `docker build -t procai .` then `docker run --rm -p 8000:8000 --env-file .env procai` |
 | Run locally | `.venv/bin/uvicorn app.main:create_app --factory --reload --app-dir src` → http://localhost:8000 |
-| CI | `.github/workflows/ci.yml`: structure check + unit/integration tests on every push and PR |
+| CI | `.github/workflows/ci.yml` on every push and PR: structure check, unit and integration tests, Docker build, E2E tests against the container |
 | Build/release | Push a tag `vX.Y.Z` → `release.yml` runs tests, builds the image, runs E2E against the container, pushes `ghcr.io/<owner>/procai`, creates the GitHub release |
 | Deploy | Automatic after a green release: `cd.yml` → Render deploy hook → wait for the released version on `/api/health` → read-only smoke tests. Manual: Actions → CD → Run workflow |
 | Production | https://ai-procurement-dfjq.onrender.com (Render, Frankfurt) + Neon PostgreSQL |
