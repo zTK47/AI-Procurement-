@@ -18,10 +18,10 @@ and generate the purchase order for the supplier – no forms, no catalog search
 
 Catalog order (use case [UC-001](docs/specs/UC-001-CATALOG-ORDER.md)):
 
-1. The **requester** writes a prompt and picks a cost center.
+1. The **requester** writes a prompt, enters the exact unit value in CHF and picks a department/cost center.
 2. The **LLM** (Claude Haiku 5.5 via the LiteLLM gateway) returns quantity, product and category as JSON.
-3. **Rules** resolve the catalog item – if several match, the cheapest wins – and check budget and stock.
-4. **Approval:** ≤ CHF 1,000 and in stock → auto-approved; otherwise MANAGER (≤ CHF 25,000) or DIRECTOR.
+3. **Rules** resolve the catalog item – if several match, the cheapest wins – or create an ad-hoc item from the exact CHF value entered by the requester.
+4. **Approval:** every valid request is placed in `PENDING_APPROVAL`; procurement decides whether to approve or reject it.
 5. **Procurement** approves or rejects (with reason) and sends the purchase order; the budget is consumed.
 
 Workflow: `CREATED → PARSED → RESOLVED → VALIDATED → PENDING_APPROVAL → APPROVED → ORDER_SENT` (or `REJECTED`), every step stored as audit trail.

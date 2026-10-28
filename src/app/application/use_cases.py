@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import uuid4
 
 from app.application.ports import CatalogRepository, CostCenterRepository, RequestParser, RequestRepository
@@ -9,9 +10,12 @@ from app.domain.entities import (
     OrderLine,
     ProcurementRequest,
     PurchaseOrder,
+    ParsedRequest,
     RequestStatus,
 )
 from app.domain.rules import find_matching_items, select_cheapest
+from app.domain.entities import CatalogItem
+from app.domain.value_objects import Money, Sku
 
 
 class NotFound(Exception):
@@ -38,18 +42,28 @@ class SubmitRequest:
         self.cost_centers = cost_centers
         self.requests = requests
 
-    def execute(self, prompt: str, cost_center_id: str, requester: str = "") -> ProcurementRequest:
+    def execute(
+        self, prompt: str, cost_center_id: str, requester: str = "",
+        unit_price: Decimal | None = None,
+    ) -> ProcurementRequest:
         center = self.cost_centers.get(cost_center_id)
         if center is None:
             raise NotFound(f"Cost center {cost_center_id} not found")
 
         request = ProcurementRequest.create(f"req-{uuid4().hex[:8]}", prompt.strip(), cost_center_id, requester.strip())
-        self._process(request, center.budget_remaining)
+        self._process(request, center.budget_remaining, unit_price)
         self.requests.save(request)
         return request
 
-    def _process(self, request: ProcurementRequest, budget) -> None:
+    def _process(self, request: ProcurementRequest, budget, unit_price: Decimal | None) -> None:
         parsed = self.parser.parse(request.raw_text)
+        if parsed.quantity is None and parsed.product_name.strip():
+            parsed = ParsedRequest(
+                quantity=1,
+                product_name=parsed.product_name,
+                category=parsed.category,
+                confidence=parsed.confidence,
+            )
         if not parsed.is_complete:
             request.mark_unparseable(parsed)
             return
@@ -57,9 +71,26 @@ class SubmitRequest:
 
         matches = find_matching_items(self.catalog.list_items(), parsed)
         if not matches:
-            request.reject("ITEM_NOT_FOUND")
-            return
-        item = select_cheapest(matches)
+            if unit_price is None or unit_price <= 0:
+                request.reject("ITEM_NOT_FOUND")
+                return
+            suppliers = self.catalog.list_suppliers()
+            if not suppliers:
+                request.reject("SUPPLIER_NOT_FOUND")
+                return
+            item = CatalogItem(
+                sku=Sku(f"CUSTOM-{uuid4().hex[:10].upper()}"),
+                name=parsed.product_name,
+                category=parsed.category or "Other",
+                supplier_id=suppliers[0].id,
+                unit_price=Money(unit_price),
+                stock=parsed.quantity or 0,
+            )
+            self.catalog.save_item(item)
+        else:
+            item = select_cheapest(matches)
+            if unit_price is not None:
+                item = CatalogItem(item.sku, item.name, item.category, item.supplier_id, Money(unit_price), item.stock)
         request.mark_resolved(item)
 
         request.mark_validated(

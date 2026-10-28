@@ -162,11 +162,10 @@ class ProcurementRequest:
         self._move(RequestStatus.VALIDATED)
         self.budget_check = "PASSED" if budget_ok else "FAILED"
         self.stock_check = "PASSED" if stock_ok else "FAILED"
-        if not budget_ok:
-            self.reject("BUDGET_EXCEEDED")
-            return
         self.approval_level = approval_level(self.total, stock_ok)
-        self._move(RequestStatus.PENDING_APPROVAL if self.requires_approval else RequestStatus.APPROVED)
+        if self.approval_level is None:
+            self.approval_level = "MANAGER"
+        self._move(RequestStatus.PENDING_APPROVAL)
 
     def approve(self) -> None:
         if self.status is not RequestStatus.PENDING_APPROVAL:

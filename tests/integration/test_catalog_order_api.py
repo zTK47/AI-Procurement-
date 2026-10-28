@@ -11,6 +11,7 @@ class FakeParser:
             "I need 5 new Lenovo Laptop": ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95),
             "2 mice please": ParsedRequest(2, "Mouse", "Accessories", 0.9),
             "I need 3 Commodore 64": ParsedRequest(3, "Commodore 64", "Computer", 0.8),
+            "Xbox": ParsedRequest(None, "Xbox", None, 0.8),
             "something nice": ParsedRequest(None, "", None, 0.1),
         }
 
@@ -25,8 +26,11 @@ def client():
         yield test_client
 
 
-def submit(client, prompt, cost_center="CC-100", requester="Anna Keller"):
-    return client.post("/api/requests", json={"prompt": prompt, "costCenterId": cost_center, "requesterName": requester})
+def submit(client, prompt, cost_center="CC-100", requester="Anna Keller", unit_price=None):
+    body = {"prompt": prompt, "costCenterId": cost_center, "requesterName": requester}
+    if unit_price is not None:
+        body["unitPrice"] = unit_price
+    return client.post("/api/requests", json=body)
 
 
 def test_catalog_order_resolves_cheapest_item_and_needs_manager_approval(client):
@@ -78,17 +82,36 @@ def test_approved_request_is_sent_as_purchase_order_and_consumes_budget(client):
     assert _budget(client, "CC-100") == budget_before - 6000.0
 
 
-def test_small_order_in_stock_is_approved_automatically(client):
+def test_small_order_in_stock_waits_for_procurement_approval(client):
     body = submit(client, "2 mice please").json()
 
-    assert body["status"] == "APPROVED"
-    assert body["validation"]["requiresApproval"] is False
-    assert body["validation"]["approvalLevel"] is None
+    assert body["status"] == "PENDING_APPROVAL"
+    assert body["validation"]["requiresApproval"] is True
+    assert body["validation"]["approvalLevel"] == "MANAGER"
 
 
-def test_unknown_product_is_rejected(client):
+def test_unknown_product_with_manual_value_waits_for_approval(client):
+    body = submit(client, "I need 3 Commodore 64", unit_price=75.50).json()
+
+    assert body["status"] == "PENDING_APPROVAL"
+    assert body["resolvedData"]["name"] == "Commodore 64"
+    assert body["resolvedData"]["unitPrice"] == 75.5
+    assert body["resolvedData"]["total"] == 226.5
+    assert body["validation"]["requiresApproval"] is True
+
+
+def test_product_without_quantity_defaults_to_one_and_reaches_action_queue(client):
+    body = submit(client, "Xbox", unit_price=299.99).json()
+
+    assert body["status"] == "PENDING_APPROVAL"
+    assert body["parsedData"]["quantity"] == 1
+    assert body["resolvedData"]["name"] == "Xbox"
+    assert body["resolvedData"]["total"] == 299.99
+    assert client.get("/api/requests").json()[0]["requestId"] == body["requestId"]
+
+
+def test_unknown_product_without_manual_value_is_invalid(client):
     body = submit(client, "I need 3 Commodore 64").json()
-
     assert body["status"] == "REJECTED"
     assert body["rejectionReason"] == "ITEM_NOT_FOUND"
 
@@ -100,11 +123,10 @@ def test_unparseable_prompt_is_rejected(client):
     assert body["rejectionReason"] == "PARSE_FAILED"
 
 
-def test_budget_exceeded_is_rejected(client):
+def test_budget_exceeded_still_waits_for_procurement_decision(client):
     body = submit(client, "I need 5 new Lenovo Laptop", cost_center="CC-300").json()
 
-    assert body["status"] == "REJECTED"
-    assert body["rejectionReason"] == "BUDGET_EXCEEDED"
+    assert body["status"] == "PENDING_APPROVAL"
     assert body["validation"]["budgetCheck"] == "FAILED"
 
 
