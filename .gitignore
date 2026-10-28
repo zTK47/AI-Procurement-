@@ -24,4 +24,3 @@ dist/
 
 # Local database
 *.db
-!procurement.db
