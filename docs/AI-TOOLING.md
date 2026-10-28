@@ -43,6 +43,14 @@ Lifecycle state and evidence are kept in [TASKS.md](TASKS.md). Release and
 deployment were only done after explicit approval (rule in `AGENTS.md`).
 The key prompts and the commits they produced are listed in [PROMPTS.md](PROMPTS.md).
 
+### Test creation variant
+
+The history shows the SW2 **Spec-Agent-Review loop**: the agent derived complete
+test functions from the UC-001 acceptance criteria (`718ccb0`: "Derived from the
+UC-001 acceptance criteria before implementation"), and the team gave feedback in
+the chat ([PROMPTS.md](PROMPTS.md)). A separate review of individual test functions
+is not documented. The repo shows no use of the Comment-Completion-Code variant.
+
 ## 2. LLM inside ProcAI
 
 The LLM does one narrow job: turn a prompt such as *"Bitte bestelle 3
@@ -144,6 +152,12 @@ The right tool depends on the workflow, the tech stack and the risk tolerance (S
 | Cursor | standalone IDE | lecture candidate (SW1/SW3), not evaluated by us | AI-native standalone IDE, presented in the lectures as an alternative |
 | Codex | CLI / cloud agent | lecture candidate (SW1/SW3), not evaluated by us | CLI and cloud agent, presented in the lectures as an alternative |
 | Cline / Continue / OpenCode | IDE extension / CLI (any model) | lecture candidate (SW1/SW3), not evaluated by us | bring-your-own-model extensions and CLI, presented in the lectures as alternatives |
+
+### Agent and model comparison
+
+This repo documents no head-to-head test of coding agents or coding models. The
+coding agent was chosen from the course benchmarks (SW3, section 1); only the
+product model was benchmarked, on real ProcAI prompts ([MODEL-EVALUATION.md](MODEL-EVALUATION.md)).
 
 ## 8. Risks and governance
 

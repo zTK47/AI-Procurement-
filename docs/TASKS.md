@@ -21,6 +21,8 @@ UI: ProcAI with Requester and Procurement admin views (light blue/white),
 checked visually in headless Chrome; click flows to be tested manually.
 Requests record the requester name; both admin tables share one layout
 (date, reference, requester, department, supplier, item, total, status); 51 tests pass.
+Test counts above are snapshots at that time. Current (28.10, `pytest --collect-only -q`):
+37 unit, 20 integration, 4 E2E (API level), 61 in total.
 
 ## Backlog
 
@@ -80,7 +82,7 @@ WSJF = cost of delay / job size.
   and the README/PROJECT links), plus this TASKS.md update. Reason: no
   behaviour or public-contract change; ADR-003 is only Proposed and nothing of
   it is implemented. Checks: tests unchanged (no file under `src/`, `tests/`
-  or `.github/` changed; 57 tests pass). The AGENTS.md change needs the human
+  or `.github/` changed; the 57 unit and integration tests pass). The AGENTS.md change needs the human
   review of the pull request.
 
 ## Definition of Done

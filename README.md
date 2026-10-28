@@ -93,7 +93,7 @@ note: [docs/PROMPTS.md](docs/PROMPTS.md).
 |---|---|---|
 | Unit (37) | value objects, rules, workflow, parsers, use cases | `.venv/bin/python -m pytest tests/unit` |
 | Integration (20) | REST API + SQLite, repository round trips | `.venv/bin/python -m pytest tests/integration` |
-| E2E (4) | full flow against a running instance / container | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` |
+| E2E (API level) (4) | full flow against a running instance / container | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` |
 
 ## CI/CD and deployment
 

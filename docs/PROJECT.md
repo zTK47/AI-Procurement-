@@ -83,6 +83,47 @@ selection and AI cost: [AI-TOOLING.md](AI-TOOLING.md).
 | Deploy | Automatic after a green release: `cd.yml` → Render deploy hook → wait for the released version on `/api/health` → read-only smoke tests. Manual: Actions → CD → Run workflow |
 | Production | https://ai-procurement-dfjq.onrender.com (Render, Frankfurt) + Neon PostgreSQL |
 
+## Branching & review
+
+- Work happens on short-lived branches (`feature/uc-001-catalog-order`,
+  `feature/deploy-render-neon`, `docs/readme-ai-tooling`), each merged into
+  `main` through a pull request (#1, #2, #3).
+- The second team member merged all three pull requests (merge commits
+  `0c82ee2`, `7cc5dd9`, `f9aebe6`); releases are tags on those merges
+  (`v0.1.0` on `0c82ee2`, `v0.1.1` on `7cc5dd9`).
+- TODO(human): branch protection / required reviews are not evidenced in the repo.
+
+## Deployment, rollback and recovery
+
+- CD (`cd.yml`) runs after a green Release (`workflow_run`) or manually
+  (`workflow_dispatch`), only when `CD_ENABLED` is `true`; it checks that
+  `/api/health` reports the expected commit, then runs read-only smoke tests.
+- Known limitation: the Release E2E tests the GHCR image, but Render rebuilds
+  from the Dockerfile ([ADR-002](adr/ADR-002-deployment-render-neon.md)). The tested
+  and the deployed artifact are built separately from the same source.
+- Rollback: the deploy hook deploys the latest commit of `main` (ADR-002), so an
+  older tag cannot be redeployed through `cd.yml`. Supported path: revert the
+  faulty change on `main` via pull request, tag a new release, let CD deploy it.
+  TODO(human): confirm in the Render dashboard whether a previous deploy can be
+  restored directly.
+- Data lives in Neon. There are no migrations (`create_all` + seed creates
+  missing tables only), so a schema change needs a manual step (BL-07,
+  [ADR-003](adr/ADR-003-sourcing-and-budget-commitment.md)).
+  TODO(human): Neon backup and restore are not documented.
+
+## Testing strategy
+
+| Level | Tests | Share | Guideline |
+|---|---|---|---|
+| Unit (`tests/unit`) | 37 | 61 % | 70 % |
+| Integration (`tests/integration`) | 20 | 33 % | 20 % |
+| E2E, API level (`tests/e2e`) | 4 | 7 % | 10 % |
+
+Counts from `pytest --collect-only -q` (61 in total). Integration is above the
+guideline because the REST API and the SQL repositories are tested through
+FastAPI's TestClient and SQLite; E2E tests call the API of the running
+container, and there are no UI tests (the UI is checked manually).
+
 ## Dependencies
 
 Declared in `requirements.txt` / `environments/python/requirements.txt`
