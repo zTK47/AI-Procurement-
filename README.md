@@ -128,6 +128,7 @@ Model choice and AI cost (≈ USD 0.00005 per request) are documented in
 | [docs/adr/](docs/adr/) | ADR-001 architecture, ADR-002 deployment |
 | [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | ER diagram, relationships, [schema.sql](docs/schema.sql) |
 | [docs/AI-TOOLING.md](docs/AI-TOOLING.md) | coding agent, MCP, model selection, AI cost, lessons learned |
+| [docs/PROMPTS.md](docs/PROMPTS.md) | prompt log, corrections, UC-001 → tests traceability |
 | [docs/TASKS.md](docs/TASKS.md) | lifecycle state and evidence |
 
 ## Repository structure

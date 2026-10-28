@@ -35,12 +35,13 @@ helped write carries `Co-Authored-By: Claude Opus 5.5`.
 |---|---|---|
 | 1 Specify | [UC-001](specs/UC-001-CATALOG-ORDER.md) from our whiteboard (catalog order logic) | use case, scope (catalog only), acceptance |
 | 2 Design | [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md), [data model](DATA-MODEL.md) | architecture, ≥ 5 entities |
-| 3 Develop | failing tests first, then code ([commit history](https://github.com/zTK47/AI-Procurement-/commits/main): `test:` before `feat:`) | UI views, colours, columns, statuses |
+| 3 Develop | failing tests first, then code ([commit history](https://github.com/zTK47/AI-Procurement-/commits/main) (commit order; see the timing note in PROMPTS.md): `test:` before `feat:`) | UI views, colours, columns, statuses |
 | 4 Validate | CI, Dockerfile, E2E, release pipeline | PR review and merge, release tag |
 | 5 Deploy | [ADR-002](adr/ADR-002-deployment-render-neon.md), `cd.yml` | Render/Neon accounts, secrets, go-ahead |
 
 Lifecycle state and evidence are kept in [TASKS.md](TASKS.md). Release and
 deployment were only done after explicit approval (rule in `AGENTS.md`).
+The key prompts and the commits they produced are listed in [PROMPTS.md](PROMPTS.md).
 
 ## 2. LLM inside ProcAI
 
