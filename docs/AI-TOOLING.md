@@ -35,12 +35,21 @@ helped write carries `Co-Authored-By: Claude Opus 5.5`.
 |---|---|---|
 | 1 Specify | [UC-001](specs/UC-001-CATALOG-ORDER.md) from our whiteboard (catalog order logic) | use case, scope (catalog only), acceptance |
 | 2 Design | [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md), [data model](DATA-MODEL.md) | architecture, ≥ 5 entities |
-| 3 Develop | failing tests first, then code ([commit history](https://github.com/zTK47/AI-Procurement-/commits/main): `test:` before `feat:`) | UI views, colours, columns, statuses |
+| 3 Develop | failing tests first, then code ([commit history](https://github.com/zTK47/AI-Procurement-/commits/main) (commit order; see the timing note in PROMPTS.md): `test:` before `feat:`) | UI views, colours, columns, statuses |
 | 4 Validate | CI, Dockerfile, E2E, release pipeline | PR review and merge, release tag |
 | 5 Deploy | [ADR-002](adr/ADR-002-deployment-render-neon.md), `cd.yml` | Render/Neon accounts, secrets, go-ahead |
 
 Lifecycle state and evidence are kept in [TASKS.md](TASKS.md). Release and
 deployment were only done after explicit approval (rule in `AGENTS.md`).
+The key prompts and the commits they produced are listed in [PROMPTS.md](PROMPTS.md).
+
+### Test creation variant
+
+The history shows the SW2 **Spec-Agent-Review loop**: the agent derived complete
+test functions from the UC-001 acceptance criteria (`718ccb0`: "Derived from the
+UC-001 acceptance criteria before implementation"), and the team gave feedback in
+the chat ([PROMPTS.md](PROMPTS.md)). A separate review of individual test functions
+is not documented. The repo shows no use of the Comment-Completion-Code variant.
 
 ## 2. LLM inside ProcAI
 
@@ -118,8 +127,9 @@ before changing the model.
 - **Test against the real gateway.** Two bugs passed all unit tests and were
   found only in a live run: Claude Haiku 5.5 rejects `temperature=0`, and
   the LiteLLM SDK treated `azure_ai/…` as a direct Azure call instead of a
-  call to our proxy. The rule-based fallback hid both silently — a fallback
-  needs logging and a check that the primary path really works.
+  call to our proxy. The rule-based fallback hid both from users and from the
+  tests; only a log warning showed it — a fallback needs a check that the
+  primary path really works.
 - **Specs and tests keep the agent on track.** With UC-001 and failing tests
   first, the agent's changes were small and verifiable; screenshots and
   reviews were still needed for UI decisions.
@@ -130,6 +140,68 @@ before changing the model.
   chat should be rotated.
 - **Benchmarks are snapshots.** The same model varied from 0.9 s to 22 s, so
   we keep the benchmark as a script and rerun it.
+
+## 7. Agents and tools considered
+
+The right tool depends on the workflow, the tech stack and the risk tolerance (SW1).
+
+| Tool | Category | Status | Verdict and reason |
+|---|---|---|---|
+| Claude Code | CLI (also IDE extension) | **used** – every commit made with the agent carries a `Co-Authored-By: Claude` trailer | chosen: agentic, follows `AGENTS.md` and skills, MCP support (section 1); trade-off: vendor-bound, expensive per task |
+| GitHub Copilot (Edu, VS Code) | IDE extension | lecture candidate (SW1/SW3), not evaluated by us | IDE extension, presented in the lectures as an alternative |
+| Cursor | standalone IDE | lecture candidate (SW1/SW3), not evaluated by us | AI-native standalone IDE, presented in the lectures as an alternative |
+| Codex | CLI / cloud agent | lecture candidate (SW1/SW3), not evaluated by us | CLI and cloud agent, presented in the lectures as an alternative |
+| Cline / Continue / OpenCode | IDE extension / CLI (any model) | lecture candidate (SW1/SW3), not evaluated by us | bring-your-own-model extensions and CLI, presented in the lectures as alternatives |
+
+### Agent and model comparison
+
+This repo documents no head-to-head test of coding agents or coding models. The
+coding agent was chosen from the course benchmarks (SW3, section 1); only the
+product model was benchmarked, on real ProcAI prompts ([MODEL-EVALUATION.md](MODEL-EVALUATION.md)).
+
+## 8. Risks and governance
+
+| Risk | Mitigation in this repo | Evidence |
+|---|---|---|
+| Accepting agent output without reading the diff | Human review before merge; corrections recorded | merge commits `0c82ee2`, `7cc5dd9`, `f9aebe6`; [PROMPTS.md](PROMPTS.md) corrections |
+| Hidden problems (security, performance, missing tests, technical debt) | Missing tests: test-first work, UC-001 → tests table, CI test job | `ci.yml`; [PROMPTS.md](PROMPTS.md). Gap: no linter, security scan, coverage report or performance check yet. Planned: coverage report and an architecture test in a follow-up pull request. |
+| Unreviewed code reaching production | Pull requests; CD only after a green release (tag pushed by a human), environment `production` | `cd.yml` (`workflow_run`, `CD_ENABLED`); TODO(human): branch protection / required reviews not evidenced in the repo |
+| Prompt injection via MCP content | Only read-only, public MCP servers; tool calls that write are confirmed by a human | `.mcp.json`, `.vscode/mcp.json`; section 3 |
+| Over-privileged tokens | Workflows use least privilege; MCP servers need no keys; LiteLLM keys are "LLM API only" | `permissions:` in `ci.yml`/`cd.yml` (read), `release.yml` (write only for release and packages); section 5 |
+| Secrets in Git | `.env` ignored, placeholders only, secrets in Render/GitHub secrets | `.gitignore`, `.env.example`, [ADR-002](adr/ADR-002-deployment-render-neon.md) |
+| An LLM fallback that hides a broken primary path | Fallback logs a warning | `FallbackParser` in `src/app/infrastructure/parsers.py`. Gap: nothing alerts us if the primary LLM parser path is broken; the fallback only logs a warning. Planned: BL-03 in docs/TASKS.md. |
+
+**Levels of autonomy (SW1).** The coding agent works agentically with a human
+in the loop: it plans, acts and observes (edits, tests, git), while merges,
+release tags, deployment and secrets stay with humans (`AGENTS.md` project
+rules). The LLM inside ProcAI has low autonomy: one fixed parsing step; every
+decision that involves money is deterministic code ([ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md)).
+
+## 9. Retrospective
+
+**What went well**
+- Red before green for UC-001 is visible in the session log (13:56 → 14:01 UTC, [PROMPTS.md](PROMPTS.md)).
+- The narrow LLM role kept AI cost at ≈ USD 0.00005 per request (section 5, [MODEL-EVALUATION.md](MODEL-EVALUATION.md)).
+- The full pipeline ran green: CI → release v0.1.0/v0.1.1 → CD to Render + Neon ([TASKS.md](TASKS.md)).
+
+**What to improve**
+- Two bugs were found only in a live run, and the fallback hid them from users (section 6, fix in `b1f1b5e`).
+- The first six commits were recorded in one batch, so timestamps do not show the TDD steps (timing note in [PROMPTS.md](PROMPTS.md)).
+- ADR-001 and ADR-002 are still *Proposed* (`docs/adr/`).
+- Test counts differ across documents (45, 49, 51 in [TASKS.md](TASKS.md); 37 + 20 + 4 in the README).
+- UI decisions needed screenshots and three correction rounds (prompt 5 in [PROMPTS.md](PROMPTS.md), `3c24f36`).
+
+**Actions**
+- Commit at every red and every green step.
+- Team accepts or amends ADR-001 and ADR-002.
+- Make the fallback visible (alert or check on the primary path).
+- Take test counts from `pytest --collect-only` instead of writing them by hand.
+
+**DRAFT for the team to edit – what is a software developer in 2026?** In
+this project the developer specified the use case, decided the architecture
+and reviewed every artefact the agent produced, while the agent wrote most of
+the code and tests. The developer also owned the irreversible steps – merges,
+releases, deployment and secrets – and was accountable for them.
 
 ## Open points
 

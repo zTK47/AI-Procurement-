@@ -146,7 +146,9 @@ def list_requests(http_request: Request):
 
 @router.post("/requests", status_code=201)
 def submit_request(body: SubmitBody, http_request: Request):
-    return request_dto(_services(http_request).submit.execute(body.prompt, body.costCenterId, body.requesterName))
+    return request_dto(_services(http_request).submit.execute(
+        body.prompt, body.costCenterId, body.requesterName,
+    ))
 
 
 @router.get("/requests/{request_id}")

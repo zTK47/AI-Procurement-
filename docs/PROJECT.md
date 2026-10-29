@@ -7,8 +7,9 @@
   catalog search and approval chasing. Requesters should describe what they
   need in one prompt and get a validated, auditable purchase order.
 - Intended users: Requesters, approvers (managers), procurement.
-- In scope (MVP): catalog orders from a natural-language prompt (UC-001),
-  LLM parsing through the LiteLLM gateway, budget/stock/approval rules,
+- In scope (MVP): strict internal-catalog orders from a natural-language prompt
+  (UC-001), LLM parsing through the LiteLLM gateway, department selection,
+  budget/stock/approval rules,
   purchase order generation, web UI.
 - Out of scope: free-text orders, OCI punch-out catalogs, ERP/SAP
   integration, goods receipt, authentication, committing credentials.
@@ -51,7 +52,8 @@ ER diagram and relationships: [DATA-MODEL.md](DATA-MODEL.md). Amounts are `NUMER
 | `SendOrder` | Create purchase order, consume budget, mark `ORDER_SENT` |
 
 Decisions: [ADR-001](adr/ADR-001-catalog-order-mvp-architecture.md),
-[ADR-002](adr/ADR-002-deployment-render-neon.md) (deployment). AI tooling, model
+[ADR-002](adr/ADR-002-deployment-render-neon.md) (deployment),
+[ADR-003](adr/ADR-003-sourcing-and-budget-commitment.md) (sourcing and budget, proposed). AI tooling, model
 selection and AI cost: [AI-TOOLING.md](AI-TOOLING.md).
 
 ## Structure
@@ -77,10 +79,51 @@ selection and AI cost: [AI-TOOLING.md](AI-TOOLING.md).
 | E2E tests | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` (needs a running instance) |
 | Docker | `docker build -t procai .` then `docker run --rm -p 8000:8000 --env-file .env procai` |
 | Run locally | `.venv/bin/uvicorn app.main:create_app --factory --reload --app-dir src` → http://localhost:8000 |
-| CI | `.github/workflows/ci.yml`: structure check + unit/integration tests on every push and PR |
+| CI | `.github/workflows/ci.yml` on every push and PR: structure check, unit and integration tests, Docker build, E2E tests against the container |
 | Build/release | Push a tag `vX.Y.Z` → `release.yml` runs tests, builds the image, runs E2E against the container, pushes `ghcr.io/<owner>/procai`, creates the GitHub release |
 | Deploy | Automatic after a green release: `cd.yml` → Render deploy hook → wait for the released version on `/api/health` → read-only smoke tests. Manual: Actions → CD → Run workflow |
 | Production | https://ai-procurement-dfjq.onrender.com (Render, Frankfurt) + Neon PostgreSQL |
+
+## Branching & review
+
+- Work happens on short-lived branches (`feature/uc-001-catalog-order`,
+  `feature/deploy-render-neon`, `docs/readme-ai-tooling`), each merged into
+  `main` through a pull request (#1, #2, #3).
+- The second team member merged all three pull requests (merge commits
+  `0c82ee2`, `7cc5dd9`, `f9aebe6`); releases are tags on those merges
+  (`v0.1.0` on `0c82ee2`, `v0.1.1` on `7cc5dd9`).
+- TODO(human): branch protection / required reviews are not evidenced in the repo.
+
+## Deployment, rollback and recovery
+
+- CD (`cd.yml`) runs after a green Release (`workflow_run`) or manually
+  (`workflow_dispatch`), only when `CD_ENABLED` is `true`; it checks that
+  `/api/health` reports the expected commit, then runs read-only smoke tests.
+- Known limitation: the Release E2E tests the GHCR image, but Render rebuilds
+  from the Dockerfile ([ADR-002](adr/ADR-002-deployment-render-neon.md)). The tested
+  and the deployed artifact are built separately from the same source.
+- Rollback: the deploy hook deploys the latest commit of `main` (ADR-002), so an
+  older tag cannot be redeployed through `cd.yml`. Supported path: revert the
+  faulty change on `main` via pull request, tag a new release, let CD deploy it.
+  TODO(human): confirm in the Render dashboard whether a previous deploy can be
+  restored directly.
+- Data lives in Neon. There are no migrations (`create_all` + seed creates
+  missing tables only), so a schema change needs a manual step (BL-07,
+  [ADR-003](adr/ADR-003-sourcing-and-budget-commitment.md)).
+  TODO(human): Neon backup and restore are not documented.
+
+## Testing strategy
+
+| Level | Tests | Share | Guideline |
+|---|---|---|---|
+| Unit (`tests/unit`) | 37 | 61 % | 70 % |
+| Integration (`tests/integration`) | 20 | 33 % | 20 % |
+| E2E, API level (`tests/e2e`) | 4 | 7 % | 10 % |
+
+Counts from `pytest --collect-only -q` (61 in total). Integration is above the
+guideline because the REST API and the SQL repositories are tested through
+FastAPI's TestClient and SQLite; E2E tests call the API of the running
+container, and there are no UI tests (the UI is checked manually).
 
 ## Dependencies
 

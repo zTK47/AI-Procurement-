@@ -76,4 +76,20 @@ before the project context has been completed.
 - Read the [canonical AI-SDLC documentation](https://docs.aisl.science/learning-and-resources/ai-sdlc)
   when terminology or lifecycle responsibilities are unclear.
 
+## Project rules (ProcAI)
+
+- The LLM only parses a prompt into a `ParsedRequest`; sourcing, budget, stock
+  and approval are deterministic domain rules ([ADR-001](docs/adr/ADR-001-catalog-order-mvp-architecture.md)).
+- Money is `Decimal` (`Money` value object) in the domain and in persistence;
+  amounts become `float` only in the JSON responses of the API.
+- Behaviour changes in domain, application and API start with a failing test
+  (`test:` commit), then `feat:`/`fix:`.
+- Dependencies point inward: `domain` imports nothing outside `domain`;
+  `interfaces` never imports `infrastructure`.
+- Merges, release tags and deployments need explicit human approval; secrets
+  live only in `.env`, Render and GitHub secrets ([ADR-002](docs/adr/ADR-002-deployment-render-neon.md)).
+- A task is done only when the
+  [Definition of Done](docs/TASKS.md#definition-of-done) in `docs/TASKS.md` is met.
+- Decisions that cost something (rules, schema, deployment) get an ADR in `docs/adr/`.
+
 If requirements or architecture are unclear → ask the user.

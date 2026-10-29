@@ -18,10 +18,10 @@ and generate the purchase order for the supplier – no forms, no catalog search
 
 Catalog order (use case [UC-001](docs/specs/UC-001-CATALOG-ORDER.md)):
 
-1. The **requester** writes a prompt and picks a cost center.
+1. The **requester** writes a prompt for an item in the internal catalog and picks a department/cost center.
 2. The **LLM** (Claude Haiku 5.5 via the LiteLLM gateway) returns quantity, product and category as JSON.
-3. **Rules** resolve the catalog item – if several match, the cheapest wins – and check budget and stock.
-4. **Approval:** ≤ CHF 1,000 and in stock → auto-approved; otherwise MANAGER (≤ CHF 25,000) or DIRECTOR.
+3. **Rules** resolve the catalog item from the internal catalog – if several supplier offers match, the cheapest wins. Unknown products are rejected.
+4. **Approval:** every valid request is placed in `PENDING_APPROVAL`; procurement decides whether to approve or reject it.
 5. **Procurement** approves or rejects (with reason) and sends the purchase order; the budget is consumed.
 
 Workflow: `CREATED → PARSED → RESOLVED → VALIDATED → PENDING_APPROVAL → APPROVED → ORDER_SENT` (or `REJECTED`), every step stored as audit trail.
@@ -84,13 +84,16 @@ docker run --rm -p 8000:8000 --env-file .env ghcr.io/ztk47/procai:latest
 
 ## Tests
 
-Test-driven: tests were committed before the implementation (see `test:` before `feat:` in the history).
+Test-driven: for UC-001 the agent session log shows a failing test run before the
+implementation existed (modules missing, 13:56 UTC) and a passing run afterwards (14:01
+UTC). The commits were recorded afterwards in `test:` then `feat:` order. Evidence and timing
+note: [docs/PROMPTS.md](docs/PROMPTS.md).
 
 | Level | What | Command |
 |---|---|---|
 | Unit (37) | value objects, rules, workflow, parsers, use cases | `.venv/bin/python -m pytest tests/unit` |
 | Integration (20) | REST API + SQLite, repository round trips | `.venv/bin/python -m pytest tests/integration` |
-| E2E (4) | full flow against a running instance / container | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` |
+| E2E (API level) (4) | full flow against a running instance / container | `E2E_BASE_URL=http://localhost:8000 .venv/bin/python -m pytest tests/e2e` |
 
 ## CI/CD and deployment
 
@@ -125,9 +128,10 @@ Model choice and AI cost (≈ USD 0.00005 per request) are documented in
 |---|---|
 | [docs/PROJECT.md](docs/PROJECT.md) | purpose, architecture, commands, configuration |
 | [docs/specs/UC-001-CATALOG-ORDER.md](docs/specs/UC-001-CATALOG-ORDER.md) | use case, errors, acceptance criteria |
-| [docs/adr/](docs/adr/) | ADR-001 architecture, ADR-002 deployment |
+| [docs/adr/](docs/adr/) | ADR-001 architecture, ADR-002 deployment, ADR-003 sourcing and budget (proposed) |
 | [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | ER diagram, relationships, [schema.sql](docs/schema.sql) |
 | [docs/AI-TOOLING.md](docs/AI-TOOLING.md) | coding agent, MCP, model selection, AI cost, lessons learned |
+| [docs/PROMPTS.md](docs/PROMPTS.md) | prompt log, corrections, UC-001 → tests traceability |
 | [docs/TASKS.md](docs/TASKS.md) | lifecycle state and evidence |
 
 ## Repository structure

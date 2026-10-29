@@ -109,12 +109,12 @@ def test_request_rejects_invalid_transitions():
         request.reject("again")
 
 
-def test_budget_failure_rejects_after_validation():
+def test_budget_failure_waits_for_procurement_approval():
     request = ProcurementRequest.create("req-1", "x", "CC-100")
     request.mark_parsed(ParsedRequest(5, "laptop", "Laptop", 0.9))
     request.mark_resolved(CATALOG[1])
     request.mark_validated(budget_ok=False, stock_ok=True)
 
-    assert request.status is RequestStatus.REJECTED
-    assert request.rejection_reason == "BUDGET_EXCEEDED"
-    assert request.history[-2:] == ["VALIDATED", "REJECTED"]
+    assert request.status is RequestStatus.PENDING_APPROVAL
+    assert request.budget_check == "FAILED"
+    assert request.history[-2:] == ["VALIDATED", "PENDING_APPROVAL"]

@@ -9,6 +9,7 @@ from app.domain.entities import (
     OrderLine,
     ProcurementRequest,
     PurchaseOrder,
+    ParsedRequest,
     RequestStatus,
 )
 from app.domain.rules import find_matching_items, select_cheapest
@@ -50,6 +51,13 @@ class SubmitRequest:
 
     def _process(self, request: ProcurementRequest, budget) -> None:
         parsed = self.parser.parse(request.raw_text)
+        if parsed.quantity is None and parsed.product_name.strip():
+            parsed = ParsedRequest(
+                quantity=1,
+                product_name=parsed.product_name,
+                category=parsed.category,
+                confidence=parsed.confidence,
+            )
         if not parsed.is_complete:
             request.mark_unparseable(parsed)
             return

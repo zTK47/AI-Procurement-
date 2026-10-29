@@ -85,10 +85,11 @@ def test_submit_runs_parse_resolve_validate_and_persists(repos):
     assert repos[2].get(request.id) is request
 
 
-def test_submit_rejects_when_quantity_missing(repos):
+def test_submit_defaults_missing_quantity_to_one(repos):
     request = submit(repos, ParsedRequest(None, "Lenovo Laptop", "Laptop", 0.3))
 
-    assert request.rejection_reason == "PARSE_FAILED"
+    assert request.status is RequestStatus.PENDING_APPROVAL
+    assert request.quantity.value == 1
 
 
 def test_submit_with_unknown_cost_center_raises(repos):
@@ -124,3 +125,16 @@ def test_send_requires_approval(repos):
 def test_unknown_request_raises_not_found(repos):
     with pytest.raises(NotFound):
         ApproveRequest(repos[2]).execute("req-missing")
+
+
+def test_unknown_product_is_rejected_without_catalog_match(repos):
+    request = submit(repos, ParsedRequest(2, "Standing Desk", "Furniture", 0.9))
+
+    assert request.status is RequestStatus.REJECTED
+    assert request.rejection_reason == "ITEM_NOT_FOUND"
+
+
+def test_all_valid_requests_require_approval(repos):
+    request = submit(repos, ParsedRequest(2, "Lenovo Laptop", "Laptop", 0.95))
+
+    assert request.status is RequestStatus.PENDING_APPROVAL
