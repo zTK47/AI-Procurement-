@@ -24,6 +24,12 @@ Requests record the requester name; both admin tables share one layout
 Test counts above are snapshots at that time. Current (28.10, `pytest --collect-only -q`):
 37 unit, 20 integration, 4 E2E (API level), 61 in total.
 
+Current strict-catalog iteration (29.10): the seeded catalog contains 110
+items across 5 suppliers, including Medion and MediaMarkt with overlapping
+offers. Unknown products are rejected with `ITEM_NOT_FOUND`; matching offers
+select the cheapest supplier. Focused validation: 60 passed, 4 E2E skipped
+without `E2E_BASE_URL`.
+
 ## Backlog
 
 - VALIDATE (done 2026-10-27): CI green (structure, 51 tests on Python 3.12,

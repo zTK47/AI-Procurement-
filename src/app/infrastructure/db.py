@@ -180,14 +180,6 @@ class SqlCatalogRepository:
         with self.db.sessions() as session:
             return [_supplier(row) for row in session.scalars(select(SupplierRow).order_by(SupplierRow.id))]
 
-    def save_item(self, item: CatalogItem) -> None:
-        with self.db.sessions.begin() as session:
-            session.add(CatalogItemRow(
-                sku=item.sku.value, name=item.name, category=item.category,
-                supplier_id=item.supplier_id, unit_price=item.unit_price.amount,
-                currency=item.unit_price.currency, stock=item.stock,
-            ))
-
     def get_supplier(self, supplier_id: str) -> Supplier | None:
         with self.db.sessions() as session:
             row = session.get(SupplierRow, supplier_id)

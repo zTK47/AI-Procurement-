@@ -43,12 +43,15 @@ def test_master_data_is_available(api):
     assert len(api.get("/api/suppliers").json()) >= 3
 
 
-def test_auto_approved_order_is_sent_to_supplier(api):
+def test_catalog_order_is_approved_and_sent_to_supplier(api):
     before = budget(api, "CC-100")
 
     request = submit(api, "2 Logitech Mouse")
-    assert request["status"] == "APPROVED"
+    assert request["status"] == "PENDING_APPROVAL"
     assert request["resolvedData"]["sku"] == "LOG-MX3S"
+
+    approved = api.post(f"/api/requests/{request['requestId']}/approve").json()
+    assert approved["status"] == "APPROVED"
 
     sent = api.post(f"/api/requests/{request['requestId']}/send").json()
     assert sent["status"] == "ORDER_SENT"

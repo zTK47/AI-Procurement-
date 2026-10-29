@@ -34,7 +34,6 @@ class SubmitBody(BaseModel):
     prompt: str = Field(max_length=1000)
     costCenterId: str
     requesterName: str = Field(max_length=100)
-    unitPrice: float | None = Field(default=None, gt=0)
 
     @field_validator("prompt", "requesterName")
     @classmethod
@@ -147,10 +146,8 @@ def list_requests(http_request: Request):
 
 @router.post("/requests", status_code=201)
 def submit_request(body: SubmitBody, http_request: Request):
-    from decimal import Decimal
     return request_dto(_services(http_request).submit.execute(
         body.prompt, body.costCenterId, body.requesterName,
-        Decimal(str(body.unitPrice)) if body.unitPrice is not None else None,
     ))
 
 

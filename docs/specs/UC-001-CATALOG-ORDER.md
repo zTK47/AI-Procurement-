@@ -35,13 +35,14 @@ orders). No authentication in the MVP; the view is chosen in the UI.
 2. System stores the request (`CREATED`).
 3. Parser extracts quantity, product name and category with a confidence (`PARSED`).
    The LLM parser is used; if the gateway is unavailable a rule-based parser is used.
-4. System resolves the catalog item. If several items match, the cheapest
-   unit price wins (sourcing rule) (`RESOLVED`).
+4. System resolves the catalog item from the internal catalog. If several
+   supplier offers match, the cheapest unit price wins (sourcing rule)
+   (`RESOLVED`). Products outside the catalog are rejected.
 5. System validates: budget (total ≤ cost center remaining budget) and stock
    (quantity ≤ stock) (`VALIDATED`).
-6. Approval rule: total ≤ 1,000 CHF and stock available → `APPROVED`
-   automatically; otherwise `PENDING_APPROVAL` with level `MANAGER`
-   (total ≤ 25,000 CHF) or `DIRECTOR`.
+6. Every resolved request enters `PENDING_APPROVAL`. Procurement decides
+   whether to approve or reject it; budget and stock results remain visible for
+   that decision.
 7. Procurement admin approves (`APPROVED`) or rejects (`REJECTED`) with a reason.
 8. Procurement admin sends the order from the Procurement view: a purchase order
    document is generated for the supplier, the budget is consumed (`ORDER_SENT`).
@@ -54,7 +55,7 @@ Every state change is appended to the request history.
 - empty prompt or unknown cost center → 422 / 404
 - quantity or product not recognised → `REJECTED`, reason `PARSE_FAILED`
 - no matching catalog item → `REJECTED`, reason `ITEM_NOT_FOUND`
-- budget exceeded → `REJECTED`, reason `BUDGET_EXCEEDED`
+- budget exceeded → `PENDING_APPROVAL` with a failed budget check
 - approve/reject/send in the wrong state → 409
 - unknown request id → 404
 
@@ -88,6 +89,6 @@ Unit: value objects, sourcing rule, approval rule, state transitions,
 rule-based parser, use cases with in-memory repositories
 Integration: FastAPI endpoints with SQLite repositories and a fake parser
 E2E (API level, `tests/e2e/test_smoke.py`): health and UI served, master data,
-auto-approved order sent, large order needs approval (409 before approval) and is
-then sent; runs against the Docker container in CI and Release, the read-only subset
-against production after each deploy. No browser/UI tests; the UI is checked manually.
+catalog order approval and sending; runs against the Docker container in CI and
+Release, the read-only subset against production after each deploy. No
+browser/UI tests; the UI is checked manually.

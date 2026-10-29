@@ -7,9 +7,9 @@
   catalog search and approval chasing. Requesters should describe what they
   need in one prompt and get a validated, auditable purchase order.
 - Intended users: Requesters, approvers (managers), procurement.
-- In scope (MVP): catalog or manually valued orders from a natural-language
-  prompt (UC-001), LLM parsing through the LiteLLM gateway,
-  department selection, budget/stock/approval rules,
+- In scope (MVP): strict internal-catalog orders from a natural-language prompt
+  (UC-001), LLM parsing through the LiteLLM gateway, department selection,
+  budget/stock/approval rules,
   purchase order generation, web UI.
 - Out of scope: free-text orders, OCI punch-out catalogs, ERP/SAP
   integration, goods receipt, authentication, committing credentials.

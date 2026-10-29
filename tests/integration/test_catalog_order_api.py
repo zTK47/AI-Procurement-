@@ -11,6 +11,7 @@ class FakeParser:
             "I need 5 new Lenovo Laptop": ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95),
             "2 mice please": ParsedRequest(2, "Mouse", "Accessories", 0.9),
             "I need 3 Commodore 64": ParsedRequest(3, "Commodore 64", "Computer", 0.8),
+            "I need 2 Business Laptop 14": ParsedRequest(2, "Business Laptop 14", "Laptop", 0.95),
             "Xbox": ParsedRequest(None, "Xbox", None, 0.8),
             "something nice": ParsedRequest(None, "", None, 0.1),
         }
@@ -26,10 +27,8 @@ def client():
         yield test_client
 
 
-def submit(client, prompt, cost_center="CC-100", requester="Anna Keller", unit_price=None):
+def submit(client, prompt, cost_center="CC-100", requester="Anna Keller"):
     body = {"prompt": prompt, "costCenterId": cost_center, "requesterName": requester}
-    if unit_price is not None:
-        body["unitPrice"] = unit_price
     return client.post("/api/requests", json=body)
 
 
@@ -90,30 +89,19 @@ def test_small_order_in_stock_waits_for_procurement_approval(client):
     assert body["validation"]["approvalLevel"] == "MANAGER"
 
 
-def test_unknown_product_with_manual_value_waits_for_approval(client):
-    body = submit(client, "I need 3 Commodore 64", unit_price=75.50).json()
-
-    assert body["status"] == "PENDING_APPROVAL"
-    assert body["resolvedData"]["name"] == "Commodore 64"
-    assert body["resolvedData"]["unitPrice"] == 75.5
-    assert body["resolvedData"]["total"] == 226.5
-    assert body["validation"]["requiresApproval"] is True
-
-
-def test_product_without_quantity_defaults_to_one_and_reaches_action_queue(client):
-    body = submit(client, "Xbox", unit_price=299.99).json()
-
-    assert body["status"] == "PENDING_APPROVAL"
-    assert body["parsedData"]["quantity"] == 1
-    assert body["resolvedData"]["name"] == "Xbox"
-    assert body["resolvedData"]["total"] == 299.99
-    assert client.get("/api/requests").json()[0]["requestId"] == body["requestId"]
-
-
-def test_unknown_product_without_manual_value_is_invalid(client):
+def test_unknown_product_is_rejected_even_without_manual_catalog_fallback(client):
     body = submit(client, "I need 3 Commodore 64").json()
+
     assert body["status"] == "REJECTED"
     assert body["rejectionReason"] == "ITEM_NOT_FOUND"
+
+
+def test_matching_catalog_offers_choose_the_cheapest_supplier(client):
+    body = submit(client, "I need 2 Business Laptop 14").json()
+
+    assert body["status"] == "PENDING_APPROVAL"
+    assert body["resolvedData"]["name"] == "Business Laptop 14"
+    assert body["resolvedData"]["supplierId"] == "SUP-005"
 
 
 def test_unparseable_prompt_is_rejected(client):
@@ -177,8 +165,12 @@ def test_requests_are_listed_newest_first(client):
 
 def test_master_data_endpoints(client):
     assert {c["id"] for c in client.get("/api/cost-centers").json()} >= {"CC-100", "CC-200", "CC-300"}
-    assert any(item["sku"] == "LEN-T14-G3" for item in client.get("/api/catalog").json())
-    assert {"id": "SUP-001", "name": "Alpine IT Distribution AG", "email": "orders@alpine-it.example"} in client.get("/api/suppliers").json()
+    catalog = client.get("/api/catalog").json()
+    suppliers = client.get("/api/suppliers").json()
+    assert len(catalog) == 110
+    assert any(item["sku"] == "LEN-T14-G3" for item in catalog)
+    assert {"id": "SUP-001", "name": "Alpine IT Distribution AG", "email": "orders@alpine-it.example"} in suppliers
+    assert {supplier["name"] for supplier in suppliers} >= {"Medion", "MediaMarkt"}
 
 
 def test_health_reports_the_deployed_version(client, monkeypatch):

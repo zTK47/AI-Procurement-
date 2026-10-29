@@ -31,12 +31,6 @@ class InMemoryCatalog:
     def list_items(self):
         return list(self.items)
 
-    def save_item(self, item):
-        self.items.append(item)
-
-    def list_suppliers(self):
-        return list(self.suppliers.values())
-
     def get_supplier(self, supplier_id):
         return self.suppliers.get(supplier_id)
 
@@ -133,16 +127,11 @@ def test_unknown_request_raises_not_found(repos):
         ApproveRequest(repos[2]).execute("req-missing")
 
 
-def test_unknown_product_with_manual_price_is_pending(repos):
-    catalog, centers, requests = repos
-    parsed = ParsedRequest(2, "Standing Desk", "Furniture", 0.9)
+def test_unknown_product_is_rejected_without_catalog_match(repos):
+    request = submit(repos, ParsedRequest(2, "Standing Desk", "Furniture", 0.9))
 
-    request = SubmitRequest(StaticParser(parsed), catalog, centers, requests).execute(
-        "I need 2 standing desks", "CC-100", requester="Anna Keller", unit_price=Decimal("450"))
-
-    assert request.status is RequestStatus.PENDING_APPROVAL
-    assert request.item.name == "Standing Desk"
-    assert request.total == Money(Decimal("900"))
+    assert request.status is RequestStatus.REJECTED
+    assert request.rejection_reason == "ITEM_NOT_FOUND"
 
 
 def test_all_valid_requests_require_approval(repos):
